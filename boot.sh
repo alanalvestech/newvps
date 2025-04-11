@@ -222,10 +222,6 @@ fi
 
 ########################################################
 # Instalar WAHA
-# ------------------------------------------------------
-# Este bloco contém toda a lógica de instalação do WAHA,
-# incluindo verificações do Docker, download da imagem,
-# configuração e inicialização do serviço.
 ########################################################
 {
     log_info "Instalando WAHA..."
@@ -278,11 +274,9 @@ fi
         exit 1
     fi
 
-    # Baixar arquivo de configuração
     wget -O .env https://raw.githubusercontent.com/devlikeapro/waha/refs/heads/core/.env.example
 
-    # Criar arquivo docker-compose
-    cat > docker-compose-waha.yaml <<'EOFWAHA'
+    cat > docker-compose-waha.yaml << 'EOF'
 services:
   waha:
     container_name: waha
@@ -295,31 +289,26 @@ services:
       - ./files:/app/files
     env_file:
       - .env
-EOFWAHA
+EOF
 
-    # Gerar credenciais
     API_KEY=$(openssl rand -hex 32)
     ADMIN_PASS=$(openssl rand -base64 12)
     SWAGGER_PASS=$(openssl rand -base64 12)
 
-    # Configurar variáveis de ambiente
     log_info "Configurando credenciais..."
-    cat > .env << EOFENV
+    cat > .env << EOF
 WHATSAPP_API_KEY=${API_KEY}
 WAHA_DASHBOARD_USERNAME=admin
 WAHA_DASHBOARD_PASSWORD=${ADMIN_PASS}
 WHATSAPP_SWAGGER_USERNAME=admin
 WHATSAPP_SWAGGER_PASSWORD=${SWAGGER_PASS}
-EOFENV
+EOF
 
-    # Criar diretórios
     mkdir -p tokens files
 
-    # Iniciar serviço
     log_info "Iniciando WAHA..."
     docker compose -f docker-compose-waha.yaml up -d
 
-    # Aguardar e verificar
     log_info "Aguardando serviço iniciar..."
     sleep 10
 
