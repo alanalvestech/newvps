@@ -226,6 +226,14 @@ fi
 {
     log_info "Instalando WAHA..."
 
+    # Verificar espaço em disco
+    AVAILABLE_SPACE=$(df -m / | awk 'NR==2 {print $4}')
+    if [ "$AVAILABLE_SPACE" -lt 1000 ]; then
+        log_warn "Pouco espaço em disco disponível (${AVAILABLE_SPACE}MB). Limpando..."
+        apt-get clean
+        docker system prune -af --volumes || true
+    fi
+
     # Verificar se o Docker está rodando
     if ! systemctl is-active --quiet docker; then
         log_info "Reiniciando serviço Docker..."
@@ -244,10 +252,25 @@ fi
         fi
     fi
 
+    # Limpar cache do Docker
+    log_info "Limpando cache do Docker..."
+    systemctl stop docker
+    rm -rf /var/lib/docker/tmp/*
+    systemctl start docker
+    sleep 5
+
     # Pull da imagem WAHA antes de configurar
     log_info "Baixando imagem do WAHA..."
-    if ! docker pull devlikeapro/waha; then
-        log_error "Falha ao baixar imagem do WAHA"
+    for i in {1..3}; do
+        if docker pull devlikeapro/waha; then
+            break
+        fi
+        log_warn "Tentativa $i falhou. Tentando novamente..."
+        sleep 5
+    done
+
+    if ! docker images | grep -q devlikeapro/waha; then
+        log_error "Falha ao baixar imagem do WAHA após 3 tentativas"
         exit 1
     fi
 
