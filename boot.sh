@@ -81,7 +81,6 @@ uninstall() {
     apt-get clean
 
     log_info "Desinstalação concluída com sucesso!"
-    log_warn "Recomenda-se reiniciar o sistema para aplicar todas as alterações."
     exit 0
 }
 
