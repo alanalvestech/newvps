@@ -46,33 +46,54 @@ uninstall() {
 
     # Remove WAHA
     log_info "Removendo WAHA..."
-    if [ -f docker-compose-waha.yaml ]; then
-        docker compose -f docker-compose-waha.yaml down || true
-        rm -f docker-compose-waha.yaml
+    if command -v docker &> /dev/null; then
+        if [ -f docker-compose-waha.yaml ]; then
+            docker compose -f docker-compose-waha.yaml down || true
+            rm -f docker-compose-waha.yaml
+        fi
     fi
     rm -f .env
 
     # Remove Docker and containers
     log_info "Removendo Docker e todos os containers..."
-    systemctl stop docker || true
-    docker system prune -af || true
-    apt-get remove --purge -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin || true
+    if systemctl list-unit-files | grep -q docker.service; then
+        systemctl stop docker || true
+    fi
+    if command -v docker &> /dev/null; then
+        docker system prune -af || true
+    fi
+    
+    # Remove Docker packages if they exist
+    for pkg in docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin; do
+        if dpkg -l | grep -q "^ii.*$pkg"; then
+            apt-get remove --purge -y "$pkg" || true
+        fi
+    done
+
+    # Remove Docker directories and files
     rm -rf /var/lib/docker
     rm -rf /etc/docker
     rm -rf /etc/apt/keyrings/docker.gpg
     rm -f /etc/apt/sources.list.d/docker.list
 
-    # Remove Git
+    # Remove Git if installed
     log_info "Removendo Git..."
-    apt-get remove --purge -y git || true
+    if dpkg -l | grep -q "^ii.*git"; then
+        apt-get remove --purge -y git || true
+    fi
 
     # Remove Python and FastAPI
     log_info "Removendo Python e FastAPI..."
     if [ -d "/opt/app" ]; then
         rm -rf /opt/app
     fi
-    apt-get remove --purge -y python3-pip python3-venv || true
-    apt-get remove --purge -y python3 || true
+    
+    # Remove Python packages if they exist
+    for pkg in python3-pip python3-venv python3; do
+        if dpkg -l | grep -q "^ii.*$pkg"; then
+            apt-get remove --purge -y "$pkg" || true
+        fi
+    done
 
     # Clean unused packages
     log_info "Limpando pacotes não utilizados..."
