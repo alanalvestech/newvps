@@ -117,15 +117,34 @@ log_info "Versão: $(git --version)"
 ########################################################
 log_info "Instalando Docker..."
 
-apt-get install -y ca-certificates curl gnupg
-install -m 0755 -d /etc/apt/keyrings
-# Remove arquivo GPG existente se houver
+# Instalar dependências
+log_info "Instalando dependências..."
+apt-get install -y ca-certificates curl gnupg || {
+    log_error "Falha ao instalar dependências"
+    exit 1
+}
+
+# Configurar diretório
+log_info "Configurando diretório..."
+install -m 0755 -d /etc/apt/keyrings || {
+    log_error "Falha ao criar diretório keyrings"
+    exit 1
+}
+
+# Remover GPG antigo
+log_info "Removendo GPG antigo..."
 rm -f /etc/apt/keyrings/docker.gpg
-# Força a sobrescrita do arquivo GPG
-yes | curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+# Baixar e configurar GPG
+log_info "Baixando chave GPG..."
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg || {
+    log_error "Falha ao baixar/configurar chave GPG"
+    exit 1
+}
 chmod a+r /etc/apt/keyrings/docker.gpg
 
 # Detectar distribuição
+log_info "Detectando distribuição..."
 if [ -f /etc/os-release ]; then
     . /etc/os-release
     OS=$ID
@@ -134,19 +153,37 @@ else
     OS="ubuntu"
     VERSION_CODENAME="jammy"
 fi
+log_info "Sistema detectado: $OS $VERSION_CODENAME"
 
 # Adicionar repositório
+log_info "Configurando repositório..."
 echo \
   "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/$OS \
   $VERSION_CODENAME stable" | \
   tee /etc/apt/sources.list.d/docker.list > /dev/null
 
-apt-get update || true
-apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+# Atualizar e instalar Docker
+log_info "Atualizando repositórios..."
+apt-get update || {
+    log_error "Falha ao atualizar repositórios"
+    exit 1
+}
 
-systemctl start docker
+log_info "Instalando pacotes Docker..."
+apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin || {
+    log_error "Falha ao instalar pacotes Docker"
+    exit 1
+}
+
+# Iniciar serviço
+log_info "Iniciando serviço Docker..."
+systemctl start docker || {
+    log_error "Falha ao iniciar Docker"
+    exit 1
+}
 systemctl enable docker
 
+# Verificar instalação
 if ! command -v docker &> /dev/null; then
     log_error "Falha na instalação do Docker"
     exit 1
