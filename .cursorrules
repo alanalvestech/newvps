@@ -1,81 +1,92 @@
 name: VPS Bootstrap Project
 description: |
-  Project to automate VPS setup with Docker, Traefik, and Portainer.
-  Created by Alan Alves.
+  Projeto para automatizar configuração de VPS com Docker e FastAPI.
+  Criado por Alan Alves.
 
-# PROJECT VISION
+# VISÃO DO PROJETO
 vision: |
-  A streamlined VPS setup system that:
-  - Automates Docker environment setup
-  - Configures Traefik as reverse proxy
-  - Sets up Portainer for container management
-  - Handles SSL certificates automatically
-  - Configures proper firewall rules
+  Sistema simplificado de configuração VPS que:
+  - Automatiza setup do ambiente Docker
+  - Fornece API REST com FastAPI
+  - Suporta instalação e desinstalação via único script
+  - Mantém ambiente atualizado e seguro
+  - Facilita gestão de containers Docker
+  - Permite extensão via módulos
 
-# TECHNICAL STACK
+# STACK TÉCNICA
 stack:
-  - Docker and Docker Compose
-  - Traefik for reverse proxy
-  - Portainer for container management
-  - UFW/iptables for firewall
-  - Let's Encrypt for SSL
-  - Bash scripts for automation
+  - Docker e Docker Compose
+  - Python e FastAPI para API
+  - Bash scripts para automação
+  - Git para controle de versão
+  - Ambiente virtual Python
 
-# CORE PRINCIPLES
+# PRINCÍPIOS CORE
 principles:
-  - Keep scripts modular and reusable
-  - Use clear documentation
-  - Follow security best practices
-  - Make configuration easy to customize
-  - Maintain idempotent scripts
+  - Manter scripts modulares e reutilizáveis
+  - Usar documentação clara
+  - Seguir boas práticas de segurança
+  - Facilitar customização da configuração
+  - Manter scripts idempotentes
+  - Centralizar instalação/desinstalação
+  - Validar entradas do usuário
 
-# CODE STYLE
+# ESTILO DE CÓDIGO
 style:
-  - Use shellcheck for bash scripts
-  - Document all configuration options
-  - Include usage examples
-  - Add error handling
-  - Use meaningful variable names
+  - Usar shellcheck para scripts bash
+  - Documentar todas opções de configuração
+  - Incluir exemplos de uso
+  - Adicionar tratamento de erros
+  - Usar nomes significativos para variáveis
+  - Traduzir mensagens para português
+  - Manter logs informativos e claros
 
-# FOLDER STRUCTURE
+# ESTRUTURA DE PASTAS
 structure:
-  docker:
-    - Compose files and configurations
-  scripts:
-    - Installation and setup scripts
+  services:
+    - Configurações Docker Compose
+    - Scripts de instalação por serviço
   configs:
-    - Default configuration files
+    - Arquivos de configuração padrão
   docs:
-    - Documentation and guides
+    - Documentação e guias
+  api:
+    - Código Python/FastAPI
 
-# NAMING CONVENTIONS
+# CONVENÇÕES DE NOMES
 naming:
-  - Use kebab-case for files and directories
-  - Prefix scripts with purpose (install-, setup-, config-)
-  - Use .sh extension for shell scripts
-  - Use .yml for docker-compose files
-  - Use descriptive names for configuration files
+  - Usar kebab-case para arquivos e diretórios
+  - Prefixar scripts com propósito (install-, setup-, config-)
+  - Usar .sh para scripts shell
+  - Usar .yml para docker-compose
+  - Usar .py para Python
+  - Usar nomes descritivos para configurações
 
-# DOCUMENTATION
+# DOCUMENTAÇÃO
 documentation:
-  - README.md in each directory
-  - Setup instructions
-  - Configuration options
-  - Troubleshooting guides
-  - Usage examples
+  - README.md em cada diretório
+  - Instruções de instalação
+  - Opções de configuração
+  - Guias de troubleshooting
+  - Exemplos de uso
+  - Documentação da API
 
-# ENGINEERING GUIDELINES
+# DIRETRIZES DE ENGENHARIA
 guidelines:
-  - Test scripts in clean environment
-  - Validate configurations
-  - Check for dependencies
-  - Handle errors gracefully
-  - Log important operations
+  - Testar scripts em ambiente limpo
+  - Validar configurações
+  - Verificar dependências
+  - Tratar erros adequadamente
+  - Registrar operações importantes
+  - Permitir rollback de instalação
+  - Validar entradas do usuário
 
-# RED FLAGS
+# PONTOS DE ATENÇÃO
 red_flags:
-  - Hardcoded credentials
-  - Unsecured ports or services
-  - Missing error handling
-  - Unclear documentation
-  - Untested scripts
+  - Credenciais hardcoded
+  - Portas ou serviços inseguros
+  - Falta de tratamento de erros
+  - Documentação pouco clara
+  - Scripts não testados
+  - Mensagens em inglês/português misturadas
+  - Falta de validação de entrada

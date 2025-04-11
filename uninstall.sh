@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # VPS Bootstrap - Uninstaller Script
-# WARNING: This script removes Docker, Git and all project files
+# WARNING: This script removes Docker, Git, Python/FastAPI and all project files
 
 set -euo pipefail
 
@@ -26,41 +26,50 @@ log_error() {
 
 # Check if running as root
 if [ "$EUID" -ne 0 ]; then 
-    log_error "Please run as root"
+    log_error "Execute como root"
     exit 1
 fi
 
 # User confirmation
-log_warn "WARNING! This script will remove:"
-echo "  - Docker and all containers"
+log_warn "ATENÇÃO! Este script irá remover:"
+echo "  - Docker e todos os containers"
 echo "  - Docker Compose"
 echo "  - Git"
-echo "  - All project files"
+echo "  - Python e FastAPI"
+echo "  - Ambiente virtual Python"
+echo "  - Todos os arquivos do projeto"
 echo ""
-read -p "Are you sure you want to continue? (type 'yes' to confirm): " confirmation
+read -p "Tem certeza que deseja continuar? (digite 'sim' para confirmar): " confirmation
 
-if [ "$confirmation" != "yes" ]; then
-    log_info "Operation cancelled by user"
+if [ "$confirmation" != "sim" ]; then
+    log_info "Operação cancelada pelo usuário"
     exit 0
 fi
 
 # Remove Docker and containers using specific script
-log_info "Removing Docker and all containers..."
+log_info "Removendo Docker e todos os containers..."
 bash services/docker/uninstall.sh
 
 # Remove Git using specific script
-log_info "Removing Git..."
+log_info "Removendo Git..."
 bash services/git/uninstall.sh
 
+# Remove Python and FastAPI
+log_info "Removendo Python e FastAPI..."
+deactivate 2>/dev/null || true
+rm -rf /opt/app
+apt-get remove -y python3 python3-pip python3-venv
+apt-get autoremove -y
+
 # Remove project directory
-log_info "Removing project directory..."
+log_info "Removendo diretório do projeto..."
 cd ..
-rm -rf /root/myvps
+rm -rf /Users/414n/workspace/newvps
 
 # Clean unused packages
-log_info "Cleaning unused packages..."
+log_info "Limpando pacotes não utilizados..."
 apt-get autoremove -y
 apt-get clean
 
-log_info "Uninstallation completed successfully!"
-log_warn "It is recommended to reboot your system to apply all changes." 
+log_info "Desinstalação concluída com sucesso!"
+log_warn "Recomenda-se reiniciar o sistema para aplicar todas as alterações." 

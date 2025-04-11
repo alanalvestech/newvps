@@ -1,4 +1,4 @@
-# MyVPS Bootstrap
+# NewVPS Bootstrap
 
 Projeto para automatizar a configuração de VPS com Docker, FastAPI e PocketFlow para agents de IA.
 

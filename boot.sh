@@ -1,7 +1,9 @@
 #!/bin/bash
 
 # VPS Bootstrap
-# Uso: curl -s https://raw.githubusercontent.com/alancriaxyz/myvps/main/boot.sh | sudo bash
+# Uso: 
+#   Instalação: curl -s https://raw.githubusercontent.com/alancriaxyz/myvps/main/boot.sh | sudo bash
+#   Desinstalação: sudo bash boot.sh uninstall
 
 set -euo pipefail
 
@@ -11,6 +13,69 @@ set -euo pipefail
 log_info() { echo -e "\033[0;32m[INFO]\033[0m $1"; }
 log_warn() { echo -e "\033[1;33m[WARN]\033[0m $1"; }
 log_error() { echo -e "\033[0;31m[ERROR]\033[0m $1"; }
+
+########################################################
+# Função de desinstalação
+########################################################
+uninstall() {
+    # Check if running as root
+    if [ "$EUID" -ne 0 ]; then 
+        log_error "Execute como root"
+        exit 1
+    fi
+
+    # User confirmation
+    log_warn "ATENÇÃO! Este script irá remover:"
+    echo "  - Docker e todos os containers"
+    echo "  - Docker Compose"
+    echo "  - Git"
+    echo "  - Python e FastAPI"
+    echo "  - Ambiente virtual Python"
+    echo "  - Todos os arquivos do projeto"
+    echo ""
+    read -p "Tem certeza que deseja continuar? (digite 'sim' para confirmar): " confirmation
+
+    if [ "$confirmation" != "sim" ]; then
+        log_info "Operação cancelada pelo usuário"
+        exit 0
+    fi
+
+    # Remove Docker and containers
+    log_info "Removendo Docker e todos os containers..."
+    systemctl stop docker || true
+    apt-get remove -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+    rm -rf /var/lib/docker
+    rm -rf /etc/docker
+    rm -rf /etc/apt/keyrings/docker.gpg
+    rm -f /etc/apt/sources.list.d/docker.list
+
+    # Remove Git
+    log_info "Removendo Git..."
+    apt-get remove -y git
+
+    # Remove Python and FastAPI
+    log_info "Removendo Python e FastAPI..."
+    deactivate 2>/dev/null || true
+    rm -rf /opt/app
+    apt-get remove -y python3 python3-pip python3-venv
+    apt-get autoremove -y
+
+    # Clean unused packages
+    log_info "Limpando pacotes não utilizados..."
+    apt-get autoremove -y
+    apt-get clean
+
+    log_info "Desinstalação concluída com sucesso!"
+    log_warn "Recomenda-se reiniciar o sistema para aplicar todas as alterações."
+    exit 0
+}
+
+########################################################
+# Verificar argumentos
+########################################################
+if [ "${1:-}" = "uninstall" ]; then
+    uninstall
+fi
 
 ########################################################
 # Verificar root
