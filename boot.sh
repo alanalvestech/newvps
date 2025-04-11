@@ -121,7 +121,8 @@ apt-get install -y ca-certificates curl gnupg
 install -m 0755 -d /etc/apt/keyrings
 # Remove arquivo GPG existente se houver
 rm -f /etc/apt/keyrings/docker.gpg
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+# Força a sobrescrita do arquivo GPG
+yes | curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 chmod a+r /etc/apt/keyrings/docker.gpg
 
 echo \
