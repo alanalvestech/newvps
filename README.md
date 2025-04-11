@@ -35,21 +35,9 @@ curl -s https://raw.githubusercontent.com/alanalvestech/newvps/main/boot.sh | su
 Para remover todos os componentes instalados:
 
 ```bash
-# Desinstalação com confirmação
-curl -s https://raw.githubusercontent.com/alanalvestech/newvps/main/boot.sh | sudo bash -s uninstall
-
-# Desinstalação automática (sem confirmação)
+# Desinstalação automática
 curl -s https://raw.githubusercontent.com/alanalvestech/newvps/main/boot.sh | sudo bash -s uninstall -y
 ```
-
-A desinstalação remove:
-- Docker e todos os containers
-- Docker Compose
-- Git
-- Python e FastAPI
-- Ambiente virtual Python
-- WAHA (WhatsApp HTTP API)
-- Todos os arquivos do projeto
 
 ## 📱 Acessando
 

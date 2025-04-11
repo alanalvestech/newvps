@@ -24,14 +24,6 @@ uninstall() {
         exit 1
     fi
 
-    # Check for -y flag
-    if [ "${2:-}" != "-y" ] && [ "${2:-}" != "--yes" ]; then
-        if [ "$confirmation" != "sim" ]; then
-            log_info "Operação cancelada pelo usuário"
-            exit 0
-        fi
-    fi
-
     # Remove WAHA
     log_info "Removendo WAHA..."
     if command -v docker &> /dev/null; then
@@ -288,6 +280,4 @@ EOF
 ########################################################
 # Finalização
 ########################################################
-{
-    log_info "Instalação concluída!"
-}
+log_info "Instalação concluída!"
