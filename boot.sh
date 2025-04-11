@@ -164,39 +164,6 @@ fi
 log_info "FastAPI instalado com sucesso!"
 log_info "Versão: $(pip show fastapi | grep Version)"
 
-# Criar arquivo main.py básico
-mkdir -p /opt/app/src
-cat > /opt/app/src/main.py << EOF
-from fastapi import FastAPI
-
-app = FastAPI(
-    title="VPS API",
-    description="API REST para gerenciamento da VPS",
-    version="1.0.0"
-)
-
-@app.get("/")
-def read_root():
-    return {"status": "online"}
-
-@app.get("/health")
-def health_check():
-    return {"status": "healthy"}
-EOF
-
-# Iniciar FastAPI em background
-nohup uvicorn src.main:app --host 0.0.0.0 --port 8000 &
-
-# Verificar se está rodando
-sleep 2
-if ! curl -s http://localhost:8000/health > /dev/null; then
-    log_error "Falha ao iniciar o FastAPI"
-    exit 1
-fi
-
-log_info "FastAPI rodando em: http://localhost:8000"
-log_info "Documentação em: http://localhost:8000/docs"
-
 ########################################################
 # Instalar WAHA
 ########################################################
