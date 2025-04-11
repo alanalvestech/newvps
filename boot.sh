@@ -26,18 +26,6 @@ uninstall() {
 
     # Check for -y flag
     if [ "${2:-}" != "-y" ] && [ "${2:-}" != "--yes" ]; then
-        # User confirmation
-        log_warn "ATENÇÃO! Este script irá remover:"
-        echo "  - Docker e todos os containers"
-        echo "  - Docker Compose"
-        echo "  - Git"
-        echo "  - Python e FastAPI"
-        echo "  - Ambiente virtual Python"
-        echo "  - WAHA (WhatsApp HTTP API)"
-        echo "  - Todos os arquivos do projeto"
-        echo ""
-        read -p "Tem certeza que deseja continuar? (digite 'sim' para confirmar): " confirmation
-
         if [ "$confirmation" != "sim" ]; then
             log_info "Operação cancelada pelo usuário"
             exit 0
@@ -123,135 +111,133 @@ fi
 ########################################################
 # Atualizar sistema
 ########################################################
-log_info "Atualizando sistema..."
-apt-get update
-apt-get upgrade -y
+{
+    log_info "Atualizando sistema..."
+    apt-get update
+    apt-get upgrade -y
+}
 
 ########################################################
 # Instalar Git
 ########################################################
-log_info "Instalando Git..."
-apt-get install -y git
+{
+    log_info "Instalando Git..."
+    apt-get install -y git
 
-if ! command -v git &> /dev/null; then
-    log_error "Falha na instalação do Git"
-    exit 1
-fi
+    if ! command -v git &> /dev/null; then
+        log_error "Falha na instalação do Git"
+        exit 1
+    fi
 
-log_info "Git instalado com sucesso!"
-log_info "Versão: $(git --version)"
+    log_info "Git instalado com sucesso!"
+    log_info "Versão: $(git --version)"
+}
 
 ########################################################
 # Instalar Docker
 ########################################################
-log_info "Instalando Docker..."
+{
+    log_info "Instalando Docker..."
 
-# Instalar dependências
-log_info "Instalando dependências..."
-apt-get install -y ca-certificates curl gnupg || {
-    log_error "Falha ao instalar dependências"
-    exit 1
+    log_info "Instalando dependências..."
+    apt-get install -y ca-certificates curl gnupg || {
+        log_error "Falha ao instalar dependências"
+        exit 1
+    }
+
+    log_info "Configurando diretório..."
+    install -m 0755 -d /etc/apt/keyrings || {
+        log_error "Falha ao criar diretório keyrings"
+        exit 1
+    }
+
+    log_info "Removendo GPG antigo..."
+    rm -f /etc/apt/keyrings/docker.gpg
+
+    log_info "Baixando chave GPG..."
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg || {
+        log_error "Falha ao baixar/configurar chave GPG"
+        exit 1
+    }
+    chmod a+r /etc/apt/keyrings/docker.gpg
+
+    log_info "Detectando distribuição..."
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        OS=$ID
+        VERSION_CODENAME=$VERSION_CODENAME
+    else
+        OS="ubuntu"
+        VERSION_CODENAME="jammy"
+    fi
+    log_info "Sistema detectado: $OS $VERSION_CODENAME"
+
+    log_info "Configurando repositório..."
+    echo \
+      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/$OS \
+      $VERSION_CODENAME stable" | \
+      tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+    log_info "Atualizando repositórios..."
+    apt-get update || {
+        log_error "Falha ao atualizar repositórios"
+        exit 1
+    }
+
+    log_info "Instalando pacotes Docker..."
+    apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin || {
+        log_error "Falha ao instalar pacotes Docker"
+        exit 1
+    }
+
+    log_info "Iniciando serviço Docker..."
+    systemctl start docker || {
+        log_error "Falha ao iniciar Docker"
+        exit 1
+    }
+    systemctl enable docker
+
+    if ! command -v docker &> /dev/null; then
+        log_error "Falha na instalação do Docker"
+        exit 1
+    fi
+
+    log_info "Docker instalado com sucesso!"
+    log_info "Versão: $(docker --version)"
+    log_info "Compose: $(docker compose version)"
 }
-
-# Configurar diretório
-log_info "Configurando diretório..."
-install -m 0755 -d /etc/apt/keyrings || {
-    log_error "Falha ao criar diretório keyrings"
-    exit 1
-}
-
-# Remover GPG antigo
-log_info "Removendo GPG antigo..."
-rm -f /etc/apt/keyrings/docker.gpg
-
-# Baixar e configurar GPG
-log_info "Baixando chave GPG..."
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg || {
-    log_error "Falha ao baixar/configurar chave GPG"
-    exit 1
-}
-chmod a+r /etc/apt/keyrings/docker.gpg
-
-# Detectar distribuição
-log_info "Detectando distribuição..."
-if [ -f /etc/os-release ]; then
-    . /etc/os-release
-    OS=$ID
-    VERSION_CODENAME=$VERSION_CODENAME
-else
-    OS="ubuntu"
-    VERSION_CODENAME="jammy"
-fi
-log_info "Sistema detectado: $OS $VERSION_CODENAME"
-
-# Adicionar repositório
-log_info "Configurando repositório..."
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/$OS \
-  $VERSION_CODENAME stable" | \
-  tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-# Atualizar e instalar Docker
-log_info "Atualizando repositórios..."
-apt-get update || {
-    log_error "Falha ao atualizar repositórios"
-    exit 1
-}
-
-log_info "Instalando pacotes Docker..."
-apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin || {
-    log_error "Falha ao instalar pacotes Docker"
-    exit 1
-}
-
-# Iniciar serviço
-log_info "Iniciando serviço Docker..."
-systemctl start docker || {
-    log_error "Falha ao iniciar Docker"
-    exit 1
-}
-systemctl enable docker
-
-# Verificar instalação
-if ! command -v docker &> /dev/null; then
-    log_error "Falha na instalação do Docker"
-    exit 1
-fi
-
-log_info "Docker instalado com sucesso!"
-log_info "Versão: $(docker --version)"
-log_info "Compose: $(docker compose version)"
 
 ########################################################
 # Instalar Python e FastAPI
 ########################################################
-log_info "Instalando Python e FastAPI..."
+{
+    log_info "Instalando Python e FastAPI..."
 
-apt-get install -y python3 python3-pip python3-venv
+    apt-get install -y python3 python3-pip python3-venv
 
-python3 -m venv /opt/app
-source /opt/app/bin/activate
+    python3 -m venv /opt/app
+    source /opt/app/bin/activate
 
-pip install fastapi uvicorn python-dotenv
+    pip install fastapi uvicorn python-dotenv
 
-if ! command -v uvicorn &> /dev/null; then
-    log_error "Falha na instalação do FastAPI"
-    exit 1
-fi
+    if ! command -v uvicorn &> /dev/null; then
+        log_error "Falha na instalação do FastAPI"
+        exit 1
+    fi
 
-log_info "FastAPI instalado com sucesso!"
-log_info "Versão: $(pip show fastapi | grep Version)"
+    log_info "FastAPI instalado com sucesso!"
+    log_info "Versão: $(pip show fastapi | grep Version)"
+}
 
 ########################################################
 # Instalar WAHA
 ########################################################
-log_info "Instalando WAHA..."
+{
+    log_info "Instalando WAHA..."
 
-# Baixar arquivos de configuração
-wget -O .env https://raw.githubusercontent.com/devlikeapro/waha/refs/heads/core/.env.example
+    wget -O .env https://raw.githubusercontent.com/devlikeapro/waha/refs/heads/core/.env.example
 
-# Criar docker-compose-waha.yaml para versão Core
-cat > docker-compose-waha.yaml << EOF
+    cat > docker-compose-waha.yaml << EOF
 version: '3.8'
 
 services:
@@ -268,14 +254,12 @@ services:
       - .env
 EOF
 
-# Gerar credenciais
-API_KEY=$(openssl rand -hex 32)
-ADMIN_PASS=$(openssl rand -base64 12)
-SWAGGER_PASS=$(openssl rand -base64 12)
+    API_KEY=$(openssl rand -hex 32)
+    ADMIN_PASS=$(openssl rand -base64 12)
+    SWAGGER_PASS=$(openssl rand -base64 12)
 
-# Configurar variáveis de ambiente de forma segura
-log_info "Configurando credenciais..."
-cat > .env << EOF
+    log_info "Configurando credenciais..."
+    cat > .env << EOF
 WHATSAPP_API_KEY=${API_KEY}
 WAHA_DASHBOARD_USERNAME=admin
 WAHA_DASHBOARD_PASSWORD=${ADMIN_PASS}
@@ -283,28 +267,27 @@ WHATSAPP_SWAGGER_USERNAME=admin
 WHATSAPP_SWAGGER_PASSWORD=${SWAGGER_PASS}
 EOF
 
-# Criar diretórios necessários
-mkdir -p tokens files
+    mkdir -p tokens files
 
-# Iniciar serviço
-log_info "Iniciando WAHA..."
-docker compose -f docker-compose-waha.yaml up -d
+    log_info "Iniciando WAHA..."
+    docker compose -f docker-compose-waha.yaml up -d
 
-# Aguardar serviço iniciar
-log_info "Aguardando serviço iniciar..."
-sleep 10
+    log_info "Aguardando serviço iniciar..."
+    sleep 10
 
-if ! curl -s http://localhost:3000/health > /dev/null; then
-    log_error "Falha na instalação do WAHA"
-    exit 1
-fi
+    if ! curl -s http://localhost:3000/health > /dev/null; then
+        log_error "Falha na instalação do WAHA"
+        exit 1
+    fi
 
-log_info "WAHA instalado com sucesso!"
-log_info "Dashboard disponível em: http://localhost:3000/dashboard"
-log_info "API disponível em: http://localhost:3000/api"
-log_info "Credenciais salvas em .env"
+    log_info "WAHA instalado com sucesso!"
+    log_info "Dashboard disponível em: http://localhost:3000/dashboard"
+    log_info "API disponível em: http://localhost:3000/api"
+}
 
 ########################################################
 # Finalização
 ########################################################
-log_info "Instalação concluída!"
+{
+    log_info "Instalação concluída!"
+}
