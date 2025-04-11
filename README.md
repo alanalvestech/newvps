@@ -23,5 +23,5 @@ Execute os seguintes comandos para instalar:
 
 ```bash
 # Download do script de instalação
-curl -O https://raw.githubusercontent.com/alancriaxyz/myvps/main/boot.sh && chmod +x boot.sh &&  ./boot.sh
+curl -s https://raw.githubusercontent.com/alanalvestech/newvps/main/boot.sh | sudo bash
 ```
