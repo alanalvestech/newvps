@@ -30,6 +30,27 @@ Execute os seguintes comandos para instalar:
 curl -s https://raw.githubusercontent.com/alanalvestech/newvps/main/boot.sh | sudo bash
 ```
 
+## 🗑️ Desinstalação
+
+Para remover todos os componentes instalados:
+
+```bash
+# Desinstalação com confirmação
+curl -s https://raw.githubusercontent.com/alanalvestech/newvps/main/boot.sh | sudo bash -s uninstall
+
+# Desinstalação automática (sem confirmação)
+curl -s https://raw.githubusercontent.com/alanalvestech/newvps/main/boot.sh | sudo bash -s uninstall -y
+```
+
+A desinstalação remove:
+- Docker e todos os containers
+- Docker Compose
+- Git
+- Python e FastAPI
+- Ambiente virtual Python
+- WAHA (WhatsApp HTTP API)
+- Todos os arquivos do projeto
+
 ## 📱 Acessando
 
 Após a instalação, acesse:
