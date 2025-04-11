@@ -221,8 +221,8 @@ log_info "Instalando WAHA..."
 # Baixar arquivos de configuração
 wget -O .env https://raw.githubusercontent.com/devlikeapro/waha/refs/heads/core/.env.example
 
-# Criar docker-compose.yaml para versão Core
-cat > docker-compose.yaml << EOF
+# Criar docker-compose-waha.yaml para versão Core
+cat > docker-compose-waha.yaml << EOF
 version: '3.8'
 
 services:
@@ -259,7 +259,7 @@ mkdir -p tokens files
 
 # Iniciar serviço
 log_info "Iniciando WAHA..."
-docker compose up -d
+docker compose -f docker-compose-waha.yaml up -d
 
 # Aguardar serviço iniciar
 log_info "Aguardando serviço iniciar..."
