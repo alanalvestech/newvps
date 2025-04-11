@@ -34,6 +34,12 @@ curl -s https://raw.githubusercontent.com/alanalvestech/newvps/main/boot.sh | su
 
 Após a instalação, acesse:
 
-- Dashboard WAHA: http://localhost:3000/dashboard
-- API WAHA: http://localhost:3000/api
-- Documentação API: http://localhost:3000/swagger
+FastAPI:
+- API: http://localhost:8000
+- Documentação: http://localhost:8000/docs
+- Health Check: http://localhost:8000/health
+
+WAHA:
+- Dashboard: http://localhost:3000/dashboard
+- API: http://localhost:3000/api
+- Documentação: http://localhost:3000/swagger
