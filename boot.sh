@@ -222,6 +222,10 @@ fi
 
 ########################################################
 # Instalar WAHA
+# ------------------------------------------------------
+# Este bloco contém toda a lógica de instalação do WAHA,
+# incluindo verificações do Docker, download da imagem,
+# configuração e inicialização do serviço.
 ########################################################
 {
     log_info "Instalando WAHA..."
