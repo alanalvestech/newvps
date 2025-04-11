@@ -300,7 +300,7 @@ EOFWAHA
 
     # Configurar variáveis de ambiente
     log_info "Configurando credenciais..."
-    cat > .env <<'EOFENV'
+    cat > .env << EOFENV
 WHATSAPP_API_KEY=${API_KEY}
 WAHA_DASHBOARD_USERNAME=admin
 WAHA_DASHBOARD_PASSWORD=${ADMIN_PASS}
