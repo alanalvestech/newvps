@@ -46,13 +46,17 @@ uninstall() {
 
     # Remove WAHA
     log_info "Removendo WAHA..."
-    docker compose down || true
-    rm -f .env docker-compose.yaml
+    if [ -f docker-compose-waha.yaml ]; then
+        docker compose -f docker-compose-waha.yaml down || true
+        rm -f docker-compose-waha.yaml
+    fi
+    rm -f .env
 
     # Remove Docker and containers
     log_info "Removendo Docker e todos os containers..."
     systemctl stop docker || true
-    apt-get remove -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+    docker system prune -af || true
+    apt-get remove --purge -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin || true
     rm -rf /var/lib/docker
     rm -rf /etc/docker
     rm -rf /etc/apt/keyrings/docker.gpg
@@ -60,18 +64,19 @@ uninstall() {
 
     # Remove Git
     log_info "Removendo Git..."
-    apt-get remove -y git
+    apt-get remove --purge -y git || true
 
     # Remove Python and FastAPI
     log_info "Removendo Python e FastAPI..."
-    deactivate 2>/dev/null || true
-    rm -rf /opt/app
-    apt-get remove -y python3 python3-pip python3-venv
-    apt-get autoremove -y
+    if [ -d "/opt/app" ]; then
+        rm -rf /opt/app
+    fi
+    apt-get remove --purge -y python3-pip python3-venv || true
+    apt-get remove --purge -y python3 || true
 
     # Clean unused packages
     log_info "Limpando pacotes não utilizados..."
-    apt-get autoremove -y
+    apt-get autoremove --purge -y || true
     apt-get clean
 
     log_info "Desinstalação concluída com sucesso!"
