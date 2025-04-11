@@ -2,7 +2,7 @@
 
 # VPS Bootstrap
 # Uso: 
-#   Instalação: curl -s https://raw.githubusercontent.com/alancriaxyz/myvps/main/boot.sh | sudo bash
+#   Instalação: curl -s https://raw.githubusercontent.com/alanalvestech/newvps/main/boot.sh | sudo bash
 #   Desinstalação: sudo bash boot.sh uninstall
 
 set -euo pipefail
@@ -157,7 +157,34 @@ log_info "FastAPI instalado com sucesso!"
 log_info "Versão: $(pip show fastapi | grep Version)"
 
 ########################################################
+# Instalar WAHA
+########################################################
+log_info "Instalando WAHA..."
+
+# Baixar arquivos de configuração
+wget -O .env https://raw.githubusercontent.com/devlikeapro/waha/refs/heads/core/.env.example
+wget -O docker-compose.yaml https://raw.githubusercontent.com/devlikeapro/waha/refs/heads/core/docker-compose.yaml
+
+# Configurar variáveis de ambiente
+sed -i "s/WHATSAPP_API_KEY=.*/WHATSAPP_API_KEY=$(openssl rand -hex 32)/" .env
+sed -i "s/WAHA_DASHBOARD_USERNAME=.*/WAHA_DASHBOARD_USERNAME=admin/" .env
+sed -i "s/WAHA_DASHBOARD_PASSWORD=.*/WAHA_DASHBOARD_PASSWORD=$(openssl rand -base64 12)/" .env
+sed -i "s/WHATSAPP_SWAGGER_USERNAME=.*/WHATSAPP_SWAGGER_USERNAME=admin/" .env
+sed -i "s/WHATSAPP_SWAGGER_PASSWORD=.*/WHATSAPP_SWAGGER_PASSWORD=$(openssl rand -base64 12)/" .env
+
+# Iniciar serviço
+docker compose up -d
+
+if ! curl -s http://localhost:3000/health > /dev/null; then
+    log_error "Falha na instalação do WAHA"
+    exit 1
+fi
+
+log_info "WAHA instalado com sucesso!"
+log_info "Dashboard disponível em: http://localhost:3000/dashboard"
+log_info "API disponível em: http://localhost:3000/api"
+
+########################################################
 # Finalização
 ########################################################
 log_info "Instalação concluída!"
-log_warn "Reinicie o sistema para aplicar todas as alterações"
