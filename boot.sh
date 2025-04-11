@@ -222,15 +222,28 @@ log_info "Instalando WAHA..."
 wget -O .env https://raw.githubusercontent.com/devlikeapro/waha/refs/heads/core/.env.example
 wget -O docker-compose.yaml https://raw.githubusercontent.com/devlikeapro/waha/refs/heads/core/docker-compose.yaml
 
-# Configurar variáveis de ambiente
-sed -i "s/WHATSAPP_API_KEY=.*/WHATSAPP_API_KEY=$(openssl rand -hex 32)/" .env
-sed -i "s/WAHA_DASHBOARD_USERNAME=.*/WAHA_DASHBOARD_USERNAME=admin/" .env
-sed -i "s/WAHA_DASHBOARD_PASSWORD=.*/WAHA_DASHBOARD_PASSWORD=$(openssl rand -base64 12)/" .env
-sed -i "s/WHATSAPP_SWAGGER_USERNAME=.*/WHATSAPP_SWAGGER_USERNAME=admin/" .env
-sed -i "s/WHATSAPP_SWAGGER_PASSWORD=.*/WHATSAPP_SWAGGER_PASSWORD=$(openssl rand -base64 12)/" .env
+# Gerar credenciais
+API_KEY=$(openssl rand -hex 32)
+ADMIN_PASS=$(openssl rand -base64 12)
+SWAGGER_PASS=$(openssl rand -base64 12)
+
+# Configurar variáveis de ambiente de forma segura
+log_info "Configurando credenciais..."
+cat > .env << EOF
+WHATSAPP_API_KEY=${API_KEY}
+WAHA_DASHBOARD_USERNAME=admin
+WAHA_DASHBOARD_PASSWORD=${ADMIN_PASS}
+WHATSAPP_SWAGGER_USERNAME=admin
+WHATSAPP_SWAGGER_PASSWORD=${SWAGGER_PASS}
+EOF
 
 # Iniciar serviço
+log_info "Iniciando WAHA..."
 docker compose up -d
+
+# Aguardar serviço iniciar
+log_info "Aguardando serviço iniciar..."
+sleep 10
 
 if ! curl -s http://localhost:3000/health > /dev/null; then
     log_error "Falha na instalação do WAHA"
@@ -240,6 +253,7 @@ fi
 log_info "WAHA instalado com sucesso!"
 log_info "Dashboard disponível em: http://localhost:3000/dashboard"
 log_info "API disponível em: http://localhost:3000/api"
+log_info "Credenciais salvas em .env"
 
 ########################################################
 # Finalização
