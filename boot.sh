@@ -231,7 +231,7 @@ services:
     image: devlikeapro/waha
     restart: unless-stopped
     ports:
-      - "127.0.0.1:3000:3000"
+      - "3000:3000"
     volumes:
       - ./tokens:/app/tokens
       - ./files:/app/files
