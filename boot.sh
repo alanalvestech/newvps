@@ -220,7 +220,24 @@ log_info "Instalando WAHA..."
 
 # Baixar arquivos de configuração
 wget -O .env https://raw.githubusercontent.com/devlikeapro/waha/refs/heads/core/.env.example
-wget -O docker-compose.yaml https://raw.githubusercontent.com/devlikeapro/waha/refs/heads/core/docker-compose.yaml
+
+# Criar docker-compose.yaml para versão Core
+cat > docker-compose.yaml << EOF
+version: '3.8'
+
+services:
+  waha:
+    container_name: waha
+    image: devlikeapro/waha
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ./tokens:/app/tokens
+      - ./files:/app/files
+    env_file:
+      - .env
+EOF
 
 # Gerar credenciais
 API_KEY=$(openssl rand -hex 32)
@@ -236,6 +253,9 @@ WAHA_DASHBOARD_PASSWORD=${ADMIN_PASS}
 WHATSAPP_SWAGGER_USERNAME=admin
 WHATSAPP_SWAGGER_PASSWORD=${SWAGGER_PASS}
 EOF
+
+# Criar diretórios necessários
+mkdir -p tokens files
 
 # Iniciar serviço
 log_info "Iniciando WAHA..."
