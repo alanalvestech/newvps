@@ -31,6 +31,7 @@ uninstall() {
     echo "  - Git"
     echo "  - Python e FastAPI"
     echo "  - Ambiente virtual Python"
+    echo "  - WAHA (WhatsApp HTTP API)"
     echo "  - Todos os arquivos do projeto"
     echo ""
     read -p "Tem certeza que deseja continuar? (digite 'sim' para confirmar): " confirmation
@@ -39,6 +40,11 @@ uninstall() {
         log_info "Operação cancelada pelo usuário"
         exit 0
     fi
+
+    # Remove WAHA
+    log_info "Removendo WAHA..."
+    docker compose down || true
+    rm -f .env docker-compose.yaml
 
     # Remove Docker and containers
     log_info "Removendo Docker e todos os containers..."
