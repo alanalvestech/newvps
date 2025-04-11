@@ -226,6 +226,31 @@ fi
 {
     log_info "Instalando WAHA..."
 
+    # Verificar se o Docker está rodando
+    if ! systemctl is-active --quiet docker; then
+        log_info "Reiniciando serviço Docker..."
+        systemctl restart docker
+        sleep 5
+    fi
+
+    # Testar conexão do Docker
+    if ! docker info > /dev/null 2>&1; then
+        log_error "Docker não está respondendo. Tentando reiniciar..."
+        systemctl restart docker
+        sleep 5
+        if ! docker info > /dev/null 2>&1; then
+            log_error "Falha ao conectar com Docker"
+            exit 1
+        fi
+    fi
+
+    # Pull da imagem WAHA antes de configurar
+    log_info "Baixando imagem do WAHA..."
+    if ! docker pull devlikeapro/waha; then
+        log_error "Falha ao baixar imagem do WAHA"
+        exit 1
+    fi
+
     wget -O .env https://raw.githubusercontent.com/devlikeapro/waha/refs/heads/core/.env.example
 
     cat > docker-compose-waha.yaml << EOF
