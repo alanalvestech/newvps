@@ -274,11 +274,11 @@ fi
         exit 1
     fi
 
+    # Baixar arquivo de configuração
     wget -O .env https://raw.githubusercontent.com/devlikeapro/waha/refs/heads/core/.env.example
 
-    cat > docker-compose-waha.yaml << EOF
-version: '3.8'
-
+    # Criar arquivo docker-compose
+    cat > docker-compose-waha.yaml <<'EOFWAHA'
 services:
   waha:
     container_name: waha
@@ -291,26 +291,31 @@ services:
       - ./files:/app/files
     env_file:
       - .env
-EOF
+EOFWAHA
 
+    # Gerar credenciais
     API_KEY=$(openssl rand -hex 32)
     ADMIN_PASS=$(openssl rand -base64 12)
     SWAGGER_PASS=$(openssl rand -base64 12)
 
+    # Configurar variáveis de ambiente
     log_info "Configurando credenciais..."
-    cat > .env << EOF
+    cat > .env <<'EOFENV'
 WHATSAPP_API_KEY=${API_KEY}
 WAHA_DASHBOARD_USERNAME=admin
 WAHA_DASHBOARD_PASSWORD=${ADMIN_PASS}
 WHATSAPP_SWAGGER_USERNAME=admin
 WHATSAPP_SWAGGER_PASSWORD=${SWAGGER_PASS}
-EOF
+EOFENV
 
+    # Criar diretórios
     mkdir -p tokens files
 
+    # Iniciar serviço
     log_info "Iniciando WAHA..."
     docker compose -f docker-compose-waha.yaml up -d
 
+    # Aguardar e verificar
     log_info "Aguardando serviço iniciar..."
     sleep 10
 
