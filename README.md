@@ -26,7 +26,6 @@ Projeto para automatizar a configuração de VPS com Docker, FastAPI e WAHA (Wha
 Execute os seguintes comandos para instalar:
 
 ```bash
-# Download do script de instalação
 curl -s https://raw.githubusercontent.com/alanalvestech/newvps/main/boot.sh | sudo bash
 ```
 
@@ -35,7 +34,6 @@ curl -s https://raw.githubusercontent.com/alanalvestech/newvps/main/boot.sh | su
 Para remover todos os componentes instalados:
 
 ```bash
-# Desinstalação automática
 curl -s https://raw.githubusercontent.com/alanalvestech/newvps/main/boot.sh | sudo bash -s uninstall -y
 ```
 
