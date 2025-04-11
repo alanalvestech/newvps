@@ -24,21 +24,24 @@ uninstall() {
         exit 1
     fi
 
-    # User confirmation
-    log_warn "ATENÇÃO! Este script irá remover:"
-    echo "  - Docker e todos os containers"
-    echo "  - Docker Compose"
-    echo "  - Git"
-    echo "  - Python e FastAPI"
-    echo "  - Ambiente virtual Python"
-    echo "  - WAHA (WhatsApp HTTP API)"
-    echo "  - Todos os arquivos do projeto"
-    echo ""
-    read -p "Tem certeza que deseja continuar? (digite 'sim' para confirmar): " confirmation
+    # Check for -y flag
+    if [ "${2:-}" != "-y" ] && [ "${2:-}" != "--yes" ]; then
+        # User confirmation
+        log_warn "ATENÇÃO! Este script irá remover:"
+        echo "  - Docker e todos os containers"
+        echo "  - Docker Compose"
+        echo "  - Git"
+        echo "  - Python e FastAPI"
+        echo "  - Ambiente virtual Python"
+        echo "  - WAHA (WhatsApp HTTP API)"
+        echo "  - Todos os arquivos do projeto"
+        echo ""
+        read -p "Tem certeza que deseja continuar? (digite 'sim' para confirmar): " confirmation
 
-    if [ "$confirmation" != "sim" ]; then
-        log_info "Operação cancelada pelo usuário"
-        exit 0
+        if [ "$confirmation" != "sim" ]; then
+            log_info "Operação cancelada pelo usuário"
+            exit 0
+        fi
     fi
 
     # Remove WAHA
@@ -80,7 +83,7 @@ uninstall() {
 # Verificar argumentos
 ########################################################
 if [ "${1:-}" = "uninstall" ]; then
-    uninstall
+    uninstall "${@}"
 fi
 
 ########################################################
