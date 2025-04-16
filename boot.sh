@@ -2,8 +2,12 @@
 
 # VPS Bootstrap
 # Uso: 
-#   Instalação: curl -s https://raw.githubusercontent.com/alanalvestech/newvps/main/boot.sh | sudo bash
-#   Desinstalação: sudo bash boot.sh uninstall
+#
+#   Instalação: 
+#       curl -s https://raw.githubusercontent.com/alanalvestech/newvps/main/boot.sh | sudo bash
+#
+#   Desinstalação: 
+#       sudo bash boot.sh uninstall
 
 set -euo pipefail
 
@@ -165,33 +169,78 @@ uninstall() {
 {
     log_info "Configuração inicial..."
 
-    # Solicita domínio e email
-    read -p "Digite seu domínio (ex: exemplo.com.br): " DOMAIN
-    if [ -z "$DOMAIN" ]; then
-        log_error "Domínio é obrigatório"
-        exit 1
+    # Verifica se está em modo desinstalação
+    if [ "${1:-}" = "uninstall" ]; then
+        uninstall "${@}"
     fi
 
-    read -p "Digite seu email para o certificado SSL: " EMAIL
-    if [ -z "$EMAIL" ]; then
-        log_error "Email é obrigatório"
-        exit 1
-    fi
+    # Solicita domínio e email
+    echo "Para prosseguir com a instalação, precisamos das seguintes informações:"
+    echo "1. Seu domínio (ex: meusite.com.br)"
+    echo "2. Seu email para notificações SSL"
+    echo ""
+    
+    while true; do
+        read -p "Digite seu domínio: " DOMAIN
+        if [ -z "$DOMAIN" ]; then
+            log_error "Domínio é obrigatório"
+            continue
+        fi
+        
+        # Remove http:// ou https:// se existir
+        DOMAIN=$(echo "$DOMAIN" | sed 's#^http[s]*://##')
+        # Remove barra no final se existir
+        DOMAIN=$(echo "$DOMAIN" | sed 's#/$##')
+        
+        break
+    done
+
+    while true; do
+        read -p "Digite seu email: " EMAIL
+        if [ -z "$EMAIL" ]; then
+            log_error "Email é obrigatório"
+            continue
+        fi
+        
+        # Validação básica de email
+        if ! echo "$EMAIL" | grep -q '^[a-zA-Z0-9._%+-]*@[a-zA-Z0-9.-]*\.[a-zA-Z]{2,}$'; then
+            log_error "Email inválido"
+            continue
+        fi
+        
+        break
+    done
 
     # Obtém IP da VPS
+    log_info "Obtendo IP do servidor..."
     SERVER_IP=$(curl -s http://ipinfo.io/ip)
-
-    # Valida se domínio está apontando para o IP
-    DOMAIN_IP=$(dig +short "$DOMAIN")
-    if [ "$DOMAIN_IP" != "$SERVER_IP" ]; then
-        log_error "Domínio $DOMAIN não está apontando para $SERVER_IP"
-        log_error "Configure o DNS antes de continuar"
+    if [ -z "$SERVER_IP" ]; then
+        log_error "Não foi possível obter o IP do servidor"
         exit 1
     fi
 
-    log_info "Domínio: $DOMAIN"
-    log_info "Email: $EMAIL"
-    log_info "IP: $SERVER_IP"
+    # Valida se domínio está apontando para o IP
+    log_info "Verificando DNS do domínio..."
+    DOMAIN_IP=$(dig +short "$DOMAIN")
+    if [ -z "$DOMAIN_IP" ]; then
+        log_error "Não foi possível resolver o DNS do domínio $DOMAIN"
+        log_error "Verifique se o domínio está configurado corretamente"
+        exit 1
+    fi
+
+    if [ "$DOMAIN_IP" != "$SERVER_IP" ]; then
+        log_error "O domínio $DOMAIN está apontando para $DOMAIN_IP"
+        log_error "Mas o IP do seu servidor é $SERVER_IP"
+        log_error "Configure o registro A do domínio para apontar para $SERVER_IP"
+        log_error "Aguarde a propagação do DNS e tente novamente"
+        exit 1
+    fi
+
+    log_info "✓ Domínio: $DOMAIN"
+    log_info "✓ Email: $EMAIL"
+    log_info "✓ IP do servidor: $SERVER_IP"
+    log_info "✓ DNS configurado corretamente"
+    echo ""
 }
 
 ########################################################
