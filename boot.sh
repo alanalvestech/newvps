@@ -4,7 +4,7 @@
 # Uso: 
 #
 #   Instalação: 
-#       wget https://raw.githubusercontent.com/alanalvestech/newvps/refs/heads/main/boot.sh -O /opt/newvps/boot.sh && sudo bash /opt/newvps/boot.sh
+#       mkdir -p /opt/newvps && wget https://raw.githubusercontent.com/alanalvestech/newvps/refs/heads/main/boot.sh -O /opt/newvps/boot.sh && sudo bash /opt/newvps/boot.sh
 #
 #   Desinstalação: 
 #       sudo bash /opt/newvps/boot.sh uninstall
@@ -436,6 +436,3 @@ uninstall() {
 # Finalização
 ########################################################
 log_info "Instalação concluída!"
-
-# Remove arquivo temporário
-rm -f /tmp/boot.sh
