@@ -412,9 +412,9 @@ uninstall() {
     wget -q "$WAHA_ENV_URL" -O docker/waha/.env.template
 
     # Substitui variáveis no arquivo .env
-    sed -i "s/{{API_KEY}}/${API_KEY}/g" docker/waha/.env.template
-    sed -i "s/{{ADMIN_PASSWORD}}/${ADMIN_PASS}/g" docker/waha/.env.template
-    sed -i "s/{{SWAGGER_PASSWORD}}/${SWAGGER_PASS}/g" docker/waha/.env.template
+    sed -i "s/{{API_KEY}}/$API_KEY/g" docker/waha/.env.template
+    sed -i "s/{{ADMIN_PASSWORD}}/$ADMIN_PASS/g" docker/waha/.env.template
+    sed -i "s/{{SWAGGER_PASSWORD}}/$SWAGGER_PASS/g" docker/waha/.env.template
     mv docker/waha/.env.template docker/waha/.env
 
     log_info "Iniciando WAHA..."
