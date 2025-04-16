@@ -202,9 +202,9 @@ uninstall() {
             continue
         fi
         
-        # Validação básica de email
-        if ! echo "$EMAIL" | grep -q '^[a-zA-Z0-9._%+-]*@[a-zA-Z0-9.-]*\.[a-zA-Z]{2,}$'; then
-            log_error "Email inválido"
+        # Validação básica de email com mensagem mais clara
+        if ! echo "$EMAIL" | grep -qE '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'; then
+            log_error "Email inválido. Use o formato: usuario@dominio.com"
             continue
         fi
         
