@@ -3,9 +3,39 @@
 # VPS Bootstrap
 # Uso: 
 #   Instalação: curl -s https://raw.githubusercontent.com/alanalvestech/newvps/main/boot.sh | sudo bash
+#   Instalação com domínio: curl -s https://raw.githubusercontent.com/alanalvestech/newvps/main/boot.sh | sudo bash -s -- -d exemplo.com -e admin@exemplo.com
 #   Desinstalação: sudo bash boot.sh uninstall
 
 set -euo pipefail
+
+# Variáveis padrão
+DOMAIN="localhost"
+EMAIL="admin@localhost"
+WWW_DOMAIN=""
+
+# Processa argumentos
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -d|--domain)
+            DOMAIN="$2"
+            WWW_DOMAIN="www.$2"
+            shift 2
+            ;;
+        -e|--email)
+            EMAIL="$2"
+            shift 2
+            ;;
+        *)
+            shift
+            ;;
+    esac
+done
+
+# Se o domínio não for localhost, configura o www
+DOMAIN_CONFIG="$DOMAIN"
+if [ "$WWW_DOMAIN" != "" ]; then
+    DOMAIN_CONFIG="$DOMAIN $WWW_DOMAIN"
+fi
 
 ########################################################
 # Funções de log
@@ -278,12 +308,12 @@ fi
     apt-get install -y nginx
 
     log_info "Configurando proxy reverso..."
-    cat > /etc/nginx/sites-available/app << 'EOF'
+    cat > /etc/nginx/sites-available/app << EOF
 # Configuração HTTP
 server {
     listen 80;
     listen [::]:80;
-    server_name alanalves.tech www.alanalves.tech;
+    server_name ${DOMAIN_CONFIG};
 
     # Buffer sizes
     client_max_body_size 64M;
@@ -358,13 +388,19 @@ EOF
     systemctl stop nginx
 
     # Tenta obter certificado, se falhar continua sem SSL
+    CERT_DOMAINS=""
+    if [ "$WWW_DOMAIN" != "" ]; then
+        CERT_DOMAINS="-d $DOMAIN -d $WWW_DOMAIN"
+    else
+        CERT_DOMAINS="-d $DOMAIN"
+    fi
+
     if certbot certonly --standalone \
         --non-interactive \
         --agree-tos \
         --preferred-challenges http \
-        --email alan@alanalves.tech \
-        -d alanalves.tech \
-        -d www.alanalves.tech; then
+        --email "$EMAIL" \
+        $CERT_DOMAINS; then
         
         log_info "Certificado SSL instalado com sucesso!"
         
@@ -374,16 +410,16 @@ EOF
 
         # Configurar Nginx com SSL
         log_info "Configurando Nginx com SSL..."
-        cat > /etc/nginx/sites-available/app << 'EOF'
+        cat > /etc/nginx/sites-available/app << EOF
 # Configuração HTTP - redirecionamento para HTTPS
 server {
     listen 80;
     listen [::]:80;
-    server_name alanalves.tech www.alanalves.tech;
+    server_name ${DOMAIN_CONFIG};
     
     # Redireciona todo tráfego HTTP para HTTPS
     location / {
-        return 301 https://$host$request_uri;
+        return 301 https://\$host\$request_uri;
     }
 }
 
@@ -391,11 +427,11 @@ server {
 server {
     listen 443 ssl http2;
     listen [::]:443 ssl http2;
-    server_name alanalves.tech www.alanalves.tech;
+    server_name ${DOMAIN_CONFIG};
 
-    ssl_certificate /etc/letsencrypt/live/alanalves.tech/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/alanalves.tech/privkey.pem;
-    ssl_trusted_certificate /etc/letsencrypt/live/alanalves.tech/chain.pem;
+    ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+    ssl_trusted_certificate /etc/letsencrypt/live/${DOMAIN}/chain.pem;
 
     # Configurações SSL otimizadas
     ssl_session_timeout 1d;
