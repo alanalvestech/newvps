@@ -54,19 +54,35 @@ uninstall() {
 
     # Remove Nginx
     log_info "Removendo Nginx..."
-    if systemctl list-unit-files | grep -q nginx.service; then
-        systemctl stop nginx || true
-        systemctl disable nginx || true
-    fi
-    if dpkg -l | grep -q "^ii.*nginx"; then
-        apt-get remove --purge -y nginx nginx-common nginx-full || true
-    fi
-    rm -rf /etc/nginx/sites-enabled/*
-    rm -rf /etc/nginx/sites-available/*
-    rm -rf /etc/nginx/conf.d/*
-    rm -rf /var/www/*
-    rm -rf /etc/nginx/ssl
+    
+    # Para todos os processos do Nginx
+    pkill -9 nginx || true
+    
+    # Para e desabilita o serviço
+    systemctl stop nginx || true
+    systemctl disable nginx || true
+    
+    # Remove todos os pacotes relacionados ao Nginx
+    apt-get purge -y nginx nginx-common nginx-full nginx-core || true
+    apt-get autoremove -y --purge nginx* || true
+    
+    # Remove todos os arquivos de configuração
+    rm -rf /etc/nginx
+    rm -rf /var/log/nginx
+    rm -rf /var/www/html
+    rm -rf /usr/share/nginx
+    rm -rf /usr/lib/nginx
+    rm -rf /usr/sbin/nginx
+    rm -rf /etc/init.d/nginx
+    rm -rf /etc/logrotate.d/nginx
+    rm -rf /var/lib/nginx
+    rm -rf /etc/default/nginx
     rm -rf /etc/letsencrypt
+    
+    # Remove o serviço do systemd
+    rm -rf /lib/systemd/system/nginx.service
+    rm -rf /etc/systemd/system/nginx.service
+    systemctl daemon-reload
 
     # Para o serviço Docker
     log_info "Parando serviço Docker..."
