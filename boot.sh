@@ -18,55 +18,24 @@ log_error() { echo -e "\033[0;31m[ERROR]\033[0m $1"; }
 # Função para esperar lock do apt
 ########################################################
 wait_for_apt() {
-    local max_attempts=12  # 1 minuto (5s * 12)
+    local max_attempts=3  # 15 segundos (5s * 3)
     local attempt=1
 
-    # Lista de arquivos de lock para verificar
-    local lock_files=(
-        "/var/lib/dpkg/lock"
-        "/var/lib/apt/lists/lock"
-        "/var/lib/dpkg/lock-frontend"
-        "/var/cache/apt/archives/lock"
-    )
-
-    while true; do
-        local locks_held=false
-        
-        for lock_file in "${lock_files[@]}"; do
-            if [ -f "$lock_file" ]; then
-                local pid=$(fuser "$lock_file" 2>/dev/null)
-                if [ ! -z "$pid" ]; then
-                    locks_held=true
-                    log_warn "Lock $lock_file mantido pelo processo $pid"
-                    
-                    # Verifica se é um processo apt-get travado
-                    if ps -p "$pid" -o comm= | grep -q "apt-get"; then
-                        log_warn "Matando processo apt-get travado (PID: $pid)..."
-                        kill -9 "$pid" || true
-                    fi
-                fi
-            fi
-        done
-
-        # Se nenhum lock estiver sendo segurado, podemos prosseguir
-        if [ "$locks_held" = false ]; then
-            break
-        fi
-
-        # Verifica timeout
-        if [ $attempt -gt $max_attempts ]; then
-            log_warn "Timeout atingido, tentando limpar locks..."
-            for lock_file in "${lock_files[@]}"; do
-                rm -f "$lock_file"
-            done
-            dpkg --configure -a || true
-            break
-        fi
-
-        log_warn "Aguardando locks serem liberados... (tentativa $attempt/$max_attempts)"
-        sleep 5
-        attempt=$((attempt + 1))
-    done
+    # Tenta matar qualquer processo apt/dpkg existente
+    pkill -9 -f "apt-get|dpkg" || true
+    
+    # Remove todos os locks imediatamente
+    rm -f /var/lib/dpkg/lock
+    rm -f /var/lib/apt/lists/lock
+    rm -f /var/lib/dpkg/lock-frontend
+    rm -f /var/cache/apt/archives/lock
+    rm -f /var/lib/dpkg/lock*
+    
+    # Repara o dpkg
+    dpkg --configure -a || true
+    
+    # Pequena pausa para o sistema se recuperar
+    sleep 2
 }
 
 ########################################################
