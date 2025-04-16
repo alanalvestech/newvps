@@ -91,9 +91,9 @@ uninstall() {
     # Remove diretório do projeto
     log_info "Removendo arquivos do projeto..."
     rm -rf /opt/newvps
-    rm -rf docker/waha
-    rm -rf tokens
-    rm -rf files
+    rm -rf "$(pwd)/docker"
+    rm -rf "$(pwd)/tokens"
+    rm -rf "$(pwd)/files"
 
     # Força kill de processos Docker remanescentes
     log_info "Removendo Docker..."
