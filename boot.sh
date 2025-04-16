@@ -4,10 +4,10 @@
 # Uso: 
 #
 #   Instalação: 
-#       mkdir -p /opt/newvps && wget https://raw.githubusercontent.com/alanalvestech/newvps/refs/heads/main/boot.sh -O /opt/newvps/boot.sh && sudo bash /opt/newvps/boot.sh
+#       wget https://raw.githubusercontent.com/alanalvestech/newvps/refs/heads/main/boot.sh && sudo bash boot.sh
 #
 #   Desinstalação: 
-#       sudo bash /opt/newvps/boot.sh uninstall
+#       sudo bash boot.sh uninstall
 
 set -euo pipefail
 
@@ -436,3 +436,6 @@ uninstall() {
 # Finalização
 ########################################################
 log_info "Instalação concluída!"
+
+# Remove script de instalação
+rm -f boot.sh
