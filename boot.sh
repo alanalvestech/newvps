@@ -180,28 +180,61 @@ uninstall() {
     echo "2. Seu email para notificações SSL"
     echo ""
     
-    # Lê domínio
-    read -p "Digite seu domínio: " DOMAIN
-    if [ -z "$DOMAIN" ]; then
-        log_error "Domínio é obrigatório"
+    # Função para ler input com retry
+    read_with_retry() {
+        local prompt="$1"
+        local var_name="$2"
+        local max_attempts=3
+        local attempt=1
+        
+        while [ $attempt -le $max_attempts ]; do
+            read -p "$prompt" value
+            
+            if [ -z "$value" ]; then
+                log_error "Valor não pode ser vazio (tentativa $attempt de $max_attempts)"
+                attempt=$((attempt + 1))
+                continue
+            fi
+            
+            eval "$var_name='$value'"
+            return 0
+        done
+        
+        log_error "Número máximo de tentativas excedido"
         exit 1
-    fi
+    }
+
+    # Lê domínio com retry
+    read_with_retry "Digite seu domínio: " DOMAIN
     
     # Remove http:// ou https:// se existir
     DOMAIN=$(echo "$DOMAIN" | sed 's#^http[s]*://##')
     # Remove barra no final se existir
     DOMAIN=$(echo "$DOMAIN" | sed 's#/$##')
 
-    # Lê email
-    read -p "Digite seu email: " EMAIL
-    if [ -z "$EMAIL" ]; then
-        log_error "Email é obrigatório"
-        exit 1
-    fi
-    
-    # Valida formato do email
-    if ! echo "$EMAIL" | grep -qE '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'; then
-        log_error "Email inválido. Use o formato: usuario@dominio.com"
+    # Lê e valida email com retry
+    max_attempts=3
+    attempt=1
+    while [ $attempt -le $max_attempts ]; do
+        read -p "Digite seu email: " EMAIL
+        
+        if [ -z "$EMAIL" ]; then
+            log_error "Email é obrigatório (tentativa $attempt de $max_attempts)"
+            attempt=$((attempt + 1))
+            continue
+        fi
+        
+        if ! echo "$EMAIL" | grep -qE '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'; then
+            log_error "Email inválido. Use o formato: usuario@dominio.com (tentativa $attempt de $max_attempts)"
+            attempt=$((attempt + 1))
+            continue
+        fi
+        
+        break
+    done
+
+    if [ $attempt -gt $max_attempts ]; then
+        log_error "Número máximo de tentativas excedido"
         exit 1
     fi
 
