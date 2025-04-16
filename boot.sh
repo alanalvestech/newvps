@@ -53,6 +53,8 @@ uninstall() {
         fi
     fi
     rm -f .env
+    rm -rf tokens
+    rm -rf files
 
     # Remove Docker and containers
     log_info "Removendo Docker e todos os containers..."
@@ -241,6 +243,97 @@ fi
 }
 
 ########################################################
+# Instalar e Configurar Nginx
+########################################################
+{
+    log_info "Instalando Nginx..."
+    apt-get install -y nginx
+
+    log_info "Configurando proxy reverso..."
+    cat > /etc/nginx/sites-available/app << 'EOF'
+server {
+    listen 80;
+    listen [::]:80;
+    server_name alanalves.tech www.alanalves.tech;
+
+    # Configurações SSL serão adicionadas pelo Certbot aqui
+
+    # Cabeçalhos de segurança
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Frame-Options SAMEORIGIN;
+    add_header X-Content-Type-Options nosniff;
+    add_header X-XSS-Protection "1; mode=block";
+    
+    # Buffer sizes
+    client_max_body_size 64M;
+    client_body_buffer_size 128k;
+    
+    # Timeouts
+    client_header_timeout 60;
+    client_body_timeout 60;
+    keepalive_timeout 60;
+    send_timeout 60;
+
+    location / {
+        proxy_pass http://localhost:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # Timeouts do proxy
+        proxy_connect_timeout 60;
+        proxy_send_timeout 60;
+        proxy_read_timeout 60;
+        
+        # Buffer sizes do proxy
+        proxy_buffer_size 4k;
+        proxy_buffers 4 32k;
+        proxy_busy_buffers_size 64k;
+    }
+}
+EOF
+
+    ln -sf /etc/nginx/sites-available/app /etc/nginx/sites-enabled/
+    rm -f /etc/nginx/sites-enabled/default
+
+    nginx -t
+
+    systemctl restart nginx
+    systemctl enable nginx
+
+    log_info "Nginx instalado e configurado com sucesso!"
+}
+
+########################################################
+# Instalar e Configurar Certbot (Let's Encrypt)
+########################################################
+{
+    log_info "Instalando Certbot..."
+    apt-get install -y certbot python3-certbot-nginx
+
+    log_info "Configurando certificado SSL..."
+    # Tenta obter certificado, se falhar continua sem SSL
+    if certbot --nginx \
+        --non-interactive \
+        --agree-tos \
+        --redirect \
+        --staple-ocsp \
+        --email alan@alanalves.tech \
+        -d alanalves.tech \
+        -d www.alanalves.tech; then
+        
+        log_info "Certificado SSL instalado com sucesso!"
+        
+        # Configurar renovação automática
+        log_info "Configurando renovação automática..."
+        (crontab -l 2>/dev/null; echo "0 12 * * * /usr/bin/certbot renew --quiet") | crontab -
+    else
+        log_warn "Falha ao obter certificado SSL. Verifique se os registros DNS estão configurados corretamente."
+    fi
+}
+
+########################################################
 # Instalar WAHA
 ########################################################
 {
@@ -339,97 +432,6 @@ EOF
 
     log_info "WAHA instalado com sucesso!"
     log_info "Dashboard disponível em: http://localhost:3000/dashboard"
-}
-
-########################################################
-# Instalar e Configurar Nginx
-########################################################
-{
-    log_info "Instalando Nginx..."
-    apt-get install -y nginx
-
-    log_info "Configurando proxy reverso..."
-    cat > /etc/nginx/sites-available/app << 'EOF'
-server {
-    listen 80;
-    listen [::]:80;
-    server_name alanalves.tech www.alanalves.tech;
-
-    # Configurações SSL serão adicionadas pelo Certbot aqui
-
-    # Cabeçalhos de segurança
-    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
-    add_header X-Frame-Options SAMEORIGIN;
-    add_header X-Content-Type-Options nosniff;
-    add_header X-XSS-Protection "1; mode=block";
-    
-    # Buffer sizes
-    client_max_body_size 64M;
-    client_body_buffer_size 128k;
-    
-    # Timeouts
-    client_header_timeout 60;
-    client_body_timeout 60;
-    keepalive_timeout 60;
-    send_timeout 60;
-
-    location / {
-        proxy_pass http://localhost:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        
-        # Timeouts do proxy
-        proxy_connect_timeout 60;
-        proxy_send_timeout 60;
-        proxy_read_timeout 60;
-        
-        # Buffer sizes do proxy
-        proxy_buffer_size 4k;
-        proxy_buffers 4 32k;
-        proxy_busy_buffers_size 64k;
-    }
-}
-EOF
-
-    ln -sf /etc/nginx/sites-available/app /etc/nginx/sites-enabled/
-    rm -f /etc/nginx/sites-enabled/default
-
-    nginx -t
-
-    systemctl restart nginx
-    systemctl enable nginx
-
-    log_info "Nginx instalado e configurado com sucesso!"
-}
-
-########################################################
-# Instalar e Configurar Certbot (Let's Encrypt)
-########################################################
-{
-    log_info "Instalando Certbot..."
-    apt-get install -y certbot python3-certbot-nginx
-
-    log_info "Configurando certificado SSL..."
-    # Tenta obter certificado, se falhar continua sem SSL
-    if certbot --nginx \
-        --non-interactive \
-        --agree-tos \
-        --redirect \
-        --staple-ocsp \
-        --email alan@alanalves.tech \
-        -d alanalves.tech \
-        -d www.alanalves.tech; then
-        
-        log_info "Certificado SSL instalado com sucesso!"
-        
-        # Configurar renovação automática
-        log_info "Configurando renovação automática..."
-        (crontab -l 2>/dev/null; echo "0 12 * * * /usr/bin/certbot renew --quiet") | crontab -
-    else
-        log_warn "Falha ao obter certificado SSL. Verifique se os registros DNS estão configurados corretamente."
-    fi
 }
 
 ########################################################
