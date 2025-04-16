@@ -9,10 +9,7 @@ Projeto para automatizar a configuração de VPS com Docker, FastAPI e WAHA (Wha
 - Instalação do Docker e Docker Compose
 - Instalação do Python e FastAPI
 - Instalação do WAHA (WhatsApp HTTP API)
-- Configuração de ambiente virtual
-- Scripts modulares e reutilizáveis
-- Dashboard para WhatsApp
-- API REST para automação de mensagens
+- Configuração automática de SSL/HTTPS
 
 ## 📋 Pré-requisitos
 
@@ -20,6 +17,7 @@ Projeto para automatizar a configuração de VPS com Docker, FastAPI e WAHA (Wha
 - Acesso root ou sudo
 - Conexão com internet
 - Mínimo 2CPU e 2GB RAM
+- Domínio apontado para o IP da VPS (para SSL)
 
 ## 🛠️ Instalação
 
@@ -28,6 +26,10 @@ Execute os seguintes comandos para instalar:
 ```bash
 curl -s https://raw.githubusercontent.com/alanalvestech/newvps/refs/heads/main/boot.sh | sudo bash
 ```
+
+Durante a instalação, você poderá optar por configurar SSL. Será necessário fornecer:
+- Domínio (ex: exemplo.com.br)
+- Email (para notificações do Let's Encrypt)
 
 ## 🗑️ Desinstalação
 
@@ -42,11 +44,11 @@ curl -s https://raw.githubusercontent.com/alanalvestech/newvps/refs/heads/main/b
 Após a instalação, acesse:
 
 FastAPI:
-- API: http://localhost:8000
-- Documentação: http://localhost:8000/docs
-- Health Check: http://localhost:8000/health
+- API: http(s)://seu-dominio/
+- Documentação: http(s)://seu-dominio/docs
+- Health Check: http(s)://seu-dominio/health
 
 WAHA:
-- Dashboard: http://localhost:3000/dashboard
-- API: http://localhost:3000/api
-- Documentação: http://localhost:3000/swagger
+- Dashboard: http(s)://seu-dominio/waha/dashboard
+- API: http(s)://seu-dominio/waha/api
+- Documentação: http(s)://seu-dominio/waha/swagger

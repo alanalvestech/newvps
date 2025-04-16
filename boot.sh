@@ -7,6 +7,10 @@
 
 set -euo pipefail
 
+# Variáveis SSL
+DOMAIN=""
+EMAIL=""
+
 # Obtém IP da VPS
 SERVER_IP=$(curl -s http://ipinfo.io/ip)
 
@@ -443,6 +447,136 @@ EOF
 }
 
 ########################################################
+# Função para configurar SSL
+########################################################
+configurar_ssl() {
+    log_info "Configurando SSL..."
+    
+    # Solicita domínio e email se não fornecidos
+    if [ -z "$DOMAIN" ]; then
+        read -p "Digite seu domínio (ex: exemplo.com.br): " DOMAIN
+    fi
+    
+    if [ -z "$EMAIL" ]; then
+        read -p "Digite seu email para o certificado SSL: " EMAIL
+    fi
+    
+    # Instala Certbot
+    apt-get install -y certbot python3-certbot-nginx
+    
+    # Gera parâmetros DH fortes
+    log_info "Gerando parâmetros DH..."
+    mkdir -p /etc/nginx/ssl
+    openssl dhparam -out /etc/nginx/ssl/dhparam.pem 2048
+    
+    # Configura Nginx para o domínio
+    cat > /etc/nginx/sites-available/app << EOF
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ${DOMAIN};
+    
+    location / {
+        return 301 https://\$host\$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name ${DOMAIN};
+    
+    # SSL
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers off;
+    ssl_dhparam /etc/nginx/ssl/dhparam.pem;
+    ssl_session_timeout 1d;
+    ssl_session_cache shared:SSL:50m;
+    ssl_stapling on;
+    ssl_stapling_verify on;
+    resolver 8.8.8.8 8.8.4.4 valid=300s;
+    resolver_timeout 5s;
+    
+    # HSTS
+    add_header Strict-Transport-Security "max-age=63072000" always;
+    
+    # Buffer sizes
+    client_max_body_size 64M;
+    client_body_buffer_size 128k;
+    
+    # Timeouts
+    client_header_timeout 60;
+    client_body_timeout 60;
+    keepalive_timeout 60;
+    send_timeout 60;
+
+    # Proxy para a API
+    location / {
+        proxy_pass http://localhost:8000;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        
+        # Timeouts do proxy
+        proxy_connect_timeout 60;
+        proxy_send_timeout 60;
+        proxy_read_timeout 60;
+        
+        # Buffer sizes do proxy
+        proxy_buffer_size 4k;
+        proxy_buffers 4 32k;
+        proxy_busy_buffers_size 64k;
+    }
+
+    # Configuração para o WAHA
+    location /waha/ {
+        proxy_pass http://localhost:3000/;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        
+        # Timeouts do proxy
+        proxy_connect_timeout 60;
+        proxy_send_timeout 60;
+        proxy_read_timeout 60;
+    }
+}
+EOF
+
+    # Configura renovação automática
+    log_info "Configurando renovação automática..."
+    echo "0 0,12 * * * root python3 -c 'import random; import time; time.sleep(random.random() * 3600)' && certbot renew -q" > /etc/cron.d/certbot
+    
+    # Backup diretório SSL
+    log_info "Configurando backup dos certificados..."
+    echo "0 0 1 * * root tar -czf /root/letsencrypt-backup-\$(date +\%Y\%m).tar.gz /etc/letsencrypt/" > /etc/cron.d/ssl-backup
+    
+    # Obtém certificado SSL
+    log_info "Obtendo certificados..."
+    certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos -m "$EMAIL" --redirect
+    
+    # Testa configuração Nginx
+    nginx -t || {
+        log_error "Configuração SSL inválida"
+        exit 1
+    }
+    
+    # Reinicia Nginx
+    systemctl restart nginx
+
+    log_info "SSL configurado com sucesso!"
+    log_info "Certificados em: /etc/letsencrypt/live/$DOMAIN/"
+    log_info "Backups mensais em: /root/letsencrypt-backup-*.tar.gz"
+    log_info "Acesse: https://$DOMAIN"
+    log_info "WAHA disponível em: https://$DOMAIN/waha/"
+}
+
+########################################################
 # Finalização
 ########################################################
+log_info "Configurando SSL..."
+configurar_ssl
+
 log_info "Instalação concluída!"
