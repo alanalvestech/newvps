@@ -1,0 +1,12 @@
+services:
+  waha:
+    container_name: waha
+    image: devlikeapro/waha
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./tokens:/app/tokens
+      - ./files:/app/files
+    env_file:
+      - .env 

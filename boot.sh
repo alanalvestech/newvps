@@ -7,13 +7,6 @@
 
 set -euo pipefail
 
-# Variáveis SSL
-DOMAIN=""
-EMAIL=""
-
-# Obtém IP da VPS
-SERVER_IP=$(curl -s http://ipinfo.io/ip)
-
 ########################################################
 # Funções de log
 ########################################################
@@ -145,6 +138,41 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 ########################################################
+# Coletar informações necessárias
+########################################################
+{
+    log_info "Configuração inicial..."
+
+    # Solicita domínio e email
+    read -p "Digite seu domínio (ex: exemplo.com.br): " DOMAIN
+    if [ -z "$DOMAIN" ]; then
+        log_error "Domínio é obrigatório"
+        exit 1
+    fi
+
+    read -p "Digite seu email para o certificado SSL: " EMAIL
+    if [ -z "$EMAIL" ]; then
+        log_error "Email é obrigatório"
+        exit 1
+    fi
+
+    # Obtém IP da VPS
+    SERVER_IP=$(curl -s http://ipinfo.io/ip)
+
+    # Valida se domínio está apontando para o IP
+    DOMAIN_IP=$(dig +short "$DOMAIN")
+    if [ "$DOMAIN_IP" != "$SERVER_IP" ]; then
+        log_error "Domínio $DOMAIN não está apontando para $SERVER_IP"
+        log_error "Configure o DNS antes de continuar"
+        exit 1
+    fi
+
+    log_info "Domínio: $DOMAIN"
+    log_info "Email: $EMAIL"
+    log_info "IP: $SERVER_IP"
+}
+
+########################################################
 # Atualizar sistema
 ########################################################
 {
@@ -274,34 +302,45 @@ fi
 {
     log_info "Instalando Nginx..."
     wait_for_apt
-    apt-get install -y nginx
+    apt-get install -y nginx certbot python3-certbot-nginx
+    
+    # Gera parâmetros DH fortes
+    log_info "Gerando parâmetros DH..."
+    mkdir -p /etc/nginx/ssl
+    openssl dhparam -out /etc/nginx/ssl/dhparam.pem 2048
 
-    log_info "Configurando proxy reverso..."
+    # Configura Nginx para o domínio
     log_info "Baixando template do Nginx..."
-    NGINX_TEMPLATE_URL="https://raw.githubusercontent.com/alanalvestech/newvps/main/configs/nginx/app.conf.template"
+    NGINX_TEMPLATE_URL="https://raw.githubusercontent.com/alanalvestech/newvps/refs/heads/main/configs/nginx/app.conf.template"
     curl -s "$NGINX_TEMPLATE_URL" | sed "s/{{DOMAIN}}/${DOMAIN}/g" > /etc/nginx/sites-available/app
 
+    ln -sf /etc/nginx/sites-available/app /etc/nginx/sites-enabled/
+    rm -f /etc/nginx/sites-enabled/default
+
+    # Configura renovação automática
+    log_info "Configurando renovação automática..."
+    echo "0 0,12 * * * root python3 -c 'import random; import time; time.sleep(random.random() * 3600)' && certbot renew -q" > /etc/cron.d/certbot
+    
+    # Backup diretório SSL
+    log_info "Configurando backup dos certificados..."
+    echo "0 0 1 * * root tar -czf /root/letsencrypt-backup-\$(date +\%Y\%m).tar.gz /etc/letsencrypt/" > /etc/cron.d/ssl-backup
+    
+    # Obtém certificado SSL
+    log_info "Obtendo certificados..."
+    certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos -m "$EMAIL" --redirect
+    
     # Testa configuração
     nginx -t || {
         log_error "Configuração do Nginx inválida"
         exit 1
     }
 
-    ln -sf /etc/nginx/sites-available/app /etc/nginx/sites-enabled/
-    rm -f /etc/nginx/sites-enabled/default
-
-    # Testar configuração
-    nginx -t || {
-        log_error "Configuração do Nginx inválida"
-        exit 1
-    }
-
+    # Reinicia Nginx
     systemctl restart nginx
     systemctl enable nginx
 
-    log_info "Nginx instalado e configurado com sucesso!"
-    log_info "Acesse: http://$SERVER_IP"
-    log_info "WAHA disponível em: http://$SERVER_IP/waha/"
+    log_info "Nginx instalado e SSL configurado com sucesso!"
+    log_info "Acesse: https://$DOMAIN"
 }
 
 ########################################################
@@ -358,35 +397,23 @@ fi
         exit 1
     fi
 
-    wget -O .env https://raw.githubusercontent.com/devlikeapro/waha/refs/heads/core/.env.example
-
-    cat > docker-compose-waha.yaml << 'EOF'
-services:
-  waha:
-    container_name: waha
-    image: devlikeapro/waha
-    restart: unless-stopped
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./tokens:/app/tokens
-      - ./files:/app/files
-    env_file:
-      - .env
-EOF
-
+    # Gera credenciais
     API_KEY=$(openssl rand -hex 32)
     ADMIN_PASS=$(openssl rand -base64 12)
     SWAGGER_PASS=$(openssl rand -base64 12)
 
-    log_info "Configurando credenciais..."
-    cat > .env << EOF
-WHATSAPP_API_KEY=${API_KEY}
-WAHA_DASHBOARD_USERNAME=admin
-WAHA_DASHBOARD_PASSWORD=${ADMIN_PASS}
-WHATSAPP_SWAGGER_USERNAME=admin
-WHATSAPP_SWAGGER_PASSWORD=${SWAGGER_PASS}
-EOF
+    # Baixa e configura docker-compose
+    log_info "Configurando Docker Compose..."
+    WAHA_COMPOSE_URL="https://raw.githubusercontent.com/alanalvestech/newvps/main/configs/waha/docker-compose.yml.template"
+    curl -s "$WAHA_COMPOSE_URL" > docker-compose-waha.yaml
+
+    # Baixa e configura env
+    log_info "Configurando variáveis de ambiente..."
+    WAHA_ENV_URL="https://raw.githubusercontent.com/alanalvestech/newvps/main/configs/waha/env.template"
+    curl -s "$WAHA_ENV_URL" | \
+        sed "s/{{API_KEY}}/${API_KEY}/g" | \
+        sed "s/{{ADMIN_PASS}}/${ADMIN_PASS}/g" | \
+        sed "s/{{SWAGGER_PASS}}/${SWAGGER_PASS}/g" > .env
 
     mkdir -p tokens files
 
@@ -405,71 +432,6 @@ EOF
 }
 
 ########################################################
-# Função para configurar SSL
-########################################################
-configurar_ssl() {
-    log_info "Configurando SSL..."
-    
-    # Solicita domínio e email se não fornecidos
-    if [ -z "$DOMAIN" ]; then
-        read -p "Digite seu domínio (ex: exemplo.com.br): " DOMAIN
-    fi
-    
-    if [ -z "$EMAIL" ]; then
-        read -p "Digite seu email para o certificado SSL: " EMAIL
-    fi
-    
-    # Instala Certbot
-    apt-get install -y certbot python3-certbot-nginx
-    
-    # Gera parâmetros DH fortes
-    log_info "Gerando parâmetros DH..."
-    mkdir -p /etc/nginx/ssl
-    openssl dhparam -out /etc/nginx/ssl/dhparam.pem 2048
-    
-    # Configura Nginx para o domínio
-    log_info "Baixando template do Nginx..."
-    NGINX_TEMPLATE_URL="https://raw.githubusercontent.com/alanalvestech/newvps/main/configs/nginx/app.conf.template"
-    curl -s "$NGINX_TEMPLATE_URL" | sed "s/{{DOMAIN}}/${DOMAIN}/g" > /etc/nginx/sites-available/app
-
-    # Testa configuração
-    nginx -t || {
-        log_error "Configuração do Nginx inválida"
-        exit 1
-    }
-    
-    # Configura renovação automática
-    log_info "Configurando renovação automática..."
-    echo "0 0,12 * * * root python3 -c 'import random; import time; time.sleep(random.random() * 3600)' && certbot renew -q" > /etc/cron.d/certbot
-    
-    # Backup diretório SSL
-    log_info "Configurando backup dos certificados..."
-    echo "0 0 1 * * root tar -czf /root/letsencrypt-backup-\$(date +\%Y\%m).tar.gz /etc/letsencrypt/" > /etc/cron.d/ssl-backup
-    
-    # Obtém certificado SSL
-    log_info "Obtendo certificados..."
-    certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos -m "$EMAIL" --redirect
-    
-    # Testa configuração Nginx
-    nginx -t || {
-        log_error "Configuração SSL inválida"
-        exit 1
-    }
-    
-    # Reinicia Nginx
-    systemctl restart nginx
-
-    log_info "SSL configurado com sucesso!"
-    log_info "Certificados em: /etc/letsencrypt/live/$DOMAIN/"
-    log_info "Backups mensais em: /root/letsencrypt-backup-*.tar.gz"
-    log_info "Acesse: https://$DOMAIN"
-    log_info "WAHA disponível em: https://$DOMAIN/waha/"
-}
-
-########################################################
 # Finalização
 ########################################################
-log_info "Configurando SSL..."
-configurar_ssl
-
 log_info "Instalação concluída!"
