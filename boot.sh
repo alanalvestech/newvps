@@ -15,6 +15,24 @@ log_warn() { echo -e "\033[1;33m[WARN]\033[0m $1"; }
 log_error() { echo -e "\033[0;31m[ERROR]\033[0m $1"; }
 
 ########################################################
+# Função para esperar lock do apt
+########################################################
+wait_for_apt() {
+    local max_attempts=60  # 5 minutos (5s * 60)
+    local attempt=1
+
+    while fuser /var/lib/dpkg/lock >/dev/null 2>&1 || fuser /var/lib/apt/lists/lock >/dev/null 2>&1 || fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do
+        if [ $attempt -gt $max_attempts ]; then
+            log_error "Timeout esperando locks do apt serem liberados"
+            exit 1
+        fi
+        log_warn "Aguardando locks do apt serem liberados... (tentativa $attempt/$max_attempts)"
+        sleep 5
+        attempt=$((attempt + 1))
+    done
+}
+
+########################################################
 # Função de desinstalação
 ########################################################
 uninstall() {
@@ -126,7 +144,9 @@ fi
 ########################################################
 {
     log_info "Atualizando sistema..."
+    wait_for_apt
     apt-get update
+    wait_for_apt
     apt-get upgrade -y
 }
 
@@ -135,6 +155,7 @@ fi
 ########################################################
 {
     log_info "Instalando Git..."
+    wait_for_apt
     apt-get install -y git
 
     if ! command -v git &> /dev/null; then
@@ -225,7 +246,7 @@ fi
 ########################################################
 {
     log_info "Instalando Python e FastAPI..."
-
+    wait_for_apt
     apt-get install -y python3 python3-pip python3-venv
 
     python3 -m venv /opt/app
@@ -247,6 +268,7 @@ fi
 ########################################################
 {
     log_info "Instalando Nginx..."
+    wait_for_apt
     apt-get install -y nginx
 
     log_info "Configurando proxy reverso..."
@@ -310,6 +332,7 @@ EOF
 ########################################################
 {
     log_info "Instalando Certbot..."
+    wait_for_apt
     apt-get install -y certbot python3-certbot-nginx
 
     log_info "Configurando certificado SSL..."
