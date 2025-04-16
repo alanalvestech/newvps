@@ -18,18 +18,30 @@ log_error() { echo -e "\033[0;31m[ERROR]\033[0m $1"; }
 # Função para esperar lock do apt
 ########################################################
 wait_for_apt() {
-    local max_attempts=60  # 5 minutos (5s * 60)
+    local max_attempts=12  # 1 minuto (5s * 12)
     local attempt=1
 
     while fuser /var/lib/dpkg/lock >/dev/null 2>&1 || fuser /var/lib/apt/lists/lock >/dev/null 2>&1 || fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do
         if [ $attempt -gt $max_attempts ]; then
-            log_error "Timeout esperando locks do apt serem liberados"
-            exit 1
+            log_warn "Tentando limpar locks do apt..."
+            rm -f /var/lib/apt/lists/lock
+            rm -f /var/cache/apt/archives/lock
+            rm -f /var/lib/dpkg/lock*
+            break
         fi
         log_warn "Aguardando locks do apt serem liberados... (tentativa $attempt/$max_attempts)"
         sleep 5
         attempt=$((attempt + 1))
     done
+
+    # Mata processos que podem estar travando o apt
+    if pgrep -f "apt-get|dpkg" > /dev/null; then
+        log_warn "Matando processos apt/dpkg travados..."
+        pkill -9 -f "apt-get|dpkg" || true
+    fi
+
+    # Repara possíveis problemas no dpkg
+    dpkg --configure -a || true
 }
 
 ########################################################
