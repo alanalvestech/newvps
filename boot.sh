@@ -59,10 +59,14 @@ uninstall() {
         systemctl disable nginx || true
     fi
     if dpkg -l | grep -q "^ii.*nginx"; then
-        apt-get remove --purge -y nginx nginx-common || true
+        apt-get remove --purge -y nginx nginx-common nginx-full || true
     fi
-    rm -f /etc/nginx/sites-enabled/app
-    rm -f /etc/nginx/sites-available/app
+    rm -rf /etc/nginx/sites-enabled/*
+    rm -rf /etc/nginx/sites-available/*
+    rm -rf /etc/nginx/conf.d/*
+    rm -rf /var/www/*
+    rm -rf /etc/nginx/ssl
+    rm -rf /etc/letsencrypt
 
     # Para o serviço Docker
     log_info "Parando serviço Docker..."
@@ -90,10 +94,7 @@ uninstall() {
 
     # Remove diretório do projeto
     log_info "Removendo arquivos do projeto..."
-    rm -rf /opt/newvps
     rm -rf "$(pwd)/docker"
-    rm -rf "$(pwd)/tokens"
-    rm -rf "$(pwd)/files"
 
     # Força kill de processos Docker remanescentes
     log_info "Removendo Docker..."
