@@ -4,7 +4,7 @@
 # Uso: 
 #
 #   Instalação: 
-#       curl -s https://raw.githubusercontent.com/alanalvestech/newvps/main/boot.sh | sudo bash
+#       wget https://raw.githubusercontent.com/alanalvestech/newvps/main/boot.sh -O /tmp/boot.sh && sudo bash /tmp/boot.sh
 #
 #   Desinstalação: 
 #       sudo bash boot.sh uninstall
@@ -173,12 +173,6 @@ uninstall() {
     if [ "${1:-}" = "uninstall" ]; then
         uninstall "${@}"
     fi
-
-    # Solicita domínio e email
-    echo "Para prosseguir com a instalação, precisamos das seguintes informações:"
-    echo "1. Seu domínio (ex: meusite.com.br)"
-    echo "2. Seu email para notificações SSL"
-    echo ""
     
     # Lê domínio
     read -p "Digite seu domínio: " DOMAIN
