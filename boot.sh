@@ -4,7 +4,7 @@
 # Uso: 
 #
 #   Instalação: 
-#       wget https://raw.githubusercontent.com/alanalvestech/newvps/main/boot.sh -O /tmp/boot.sh && sudo bash /tmp/boot.sh
+#       wget https://raw.githubusercontent.com/alanalvestech/newvps/refs/heads/main/boot.sh -O /tmp/boot.sh && sudo bash /tmp/boot.sh
 #
 #   Desinstalação: 
 #       sudo bash boot.sh uninstall
@@ -197,35 +197,8 @@ uninstall() {
         exit 1
     fi
 
-    # Obtém IP da VPS
-    log_info "Obtendo IP do servidor..."
-    SERVER_IP=$(curl -s http://ipinfo.io/ip)
-    if [ -z "$SERVER_IP" ]; then
-        log_error "Não foi possível obter o IP do servidor"
-        exit 1
-    fi
-
-    # Valida se domínio está apontando para o IP
-    log_info "Verificando DNS do domínio..."
-    DOMAIN_IP=$(dig +short "$DOMAIN")
-    if [ -z "$DOMAIN_IP" ]; then
-        log_error "Não foi possível resolver o DNS do domínio $DOMAIN"
-        log_error "Verifique se o domínio está configurado corretamente"
-        exit 1
-    fi
-
-    if [ "$DOMAIN_IP" != "$SERVER_IP" ]; then
-        log_error "O domínio $DOMAIN está apontando para $DOMAIN_IP"
-        log_error "Mas o IP do seu servidor é $SERVER_IP"
-        log_error "Configure o registro A do domínio para apontar para $SERVER_IP"
-        log_error "Aguarde a propagação do DNS e tente novamente"
-        exit 1
-    fi
-
     log_info "✓ Domínio: $DOMAIN"
     log_info "✓ Email: $EMAIL"
-    log_info "✓ IP do servidor: $SERVER_IP"
-    log_info "✓ DNS configurado corretamente"
     echo ""
 }
 
