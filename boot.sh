@@ -4,10 +4,10 @@
 # Uso: 
 #
 #   Instalação: 
-#       wget https://raw.githubusercontent.com/alanalvestech/newvps/refs/heads/main/boot.sh -O /tmp/boot.sh && sudo bash /tmp/boot.sh
+#       wget https://raw.githubusercontent.com/alanalvestech/newvps/refs/heads/main/boot.sh -O /opt/newvps/boot.sh && sudo bash /opt/newvps/boot.sh
 #
 #   Desinstalação: 
-#       sudo bash boot.sh uninstall
+#       sudo bash /opt/newvps/boot.sh uninstall
 
 set -euo pipefail
 
@@ -74,6 +74,10 @@ uninstall() {
     rm -rf docker/waha
     rm -rf tokens
     rm -rf files
+
+    # Remove diretório do projeto
+    log_info "Removendo arquivos do projeto..."
+    rm -rf /opt/newvps
 
     # Remove Docker and containers
     log_info "Removendo Docker e todos os containers..."
@@ -154,13 +158,16 @@ uninstall() {
 }
 
 ########################################################
-# Verificar root
+# Verificar root e criar estrutura
 ########################################################
 {
     if [ "$EUID" -ne 0 ]; then 
         log_error "Execute como root"
         exit 1
     fi
+
+    # Cria estrutura de diretórios
+    mkdir -p /opt/newvps/templates
 }
 
 ########################################################
@@ -342,12 +349,11 @@ uninstall() {
     # Baixa e configura template do Nginx
     log_info "Baixando template do Nginx..."
     NGINX_TEMPLATE_URL="https://raw.githubusercontent.com/alanalvestech/newvps/refs/heads/main/configs/nginx/app.conf.template"
-    wget -q "$NGINX_TEMPLATE_URL" -O /tmp/nginx.template
+    wget -q "$NGINX_TEMPLATE_URL" -O /opt/newvps/templates/nginx.conf.template
     
     # Substitui variáveis no template
     log_info "Configurando Nginx..."
-    sed "s/{{DOMAIN}}/${DOMAIN}/g" /tmp/nginx.template > /etc/nginx/sites-available/app
-    rm -f /tmp/nginx.template
+    sed "s/{{DOMAIN}}/${DOMAIN}/g" /opt/newvps/templates/nginx.conf.template > /etc/nginx/sites-available/app
 
     ln -sf /etc/nginx/sites-available/app /etc/nginx/sites-enabled/
     rm -f /etc/nginx/sites-enabled/default
