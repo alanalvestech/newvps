@@ -63,12 +63,11 @@ uninstall() {
     # Remove WAHA
     log_info "Removendo WAHA..."
     if command -v docker &> /dev/null; then
-        if [ -f docker-compose-waha.yaml ]; then
-            docker compose -f docker-compose-waha.yaml down || true
-            rm -f docker-compose-waha.yaml
+        if [ -f docker/waha/docker-compose.yaml ]; then
+            docker compose -f docker/waha/docker-compose.yaml down || true
         fi
     fi
-    rm -f .env
+    rm -rf docker/waha
     rm -rf tokens
     rm -rf files
 
@@ -349,53 +348,8 @@ fi
 {
     log_info "Instalando WAHA..."
 
-    # Verificar espaço em disco
-    AVAILABLE_SPACE=$(df -m / | awk 'NR==2 {print $4}')
-    if [ "$AVAILABLE_SPACE" -lt 1000 ]; then
-        log_warn "Pouco espaço em disco disponível (${AVAILABLE_SPACE}MB). Limpando..."
-        apt-get clean
-        docker system prune -af --volumes || true
-    fi
-
-    # Verificar se o Docker está rodando
-    if ! systemctl is-active --quiet docker; then
-        log_info "Reiniciando serviço Docker..."
-        systemctl restart docker
-        sleep 5
-    fi
-
-    # Testar conexão do Docker
-    if ! docker info > /dev/null 2>&1; then
-        log_error "Docker não está respondendo. Tentando reiniciar..."
-        systemctl restart docker
-        sleep 5
-        if ! docker info > /dev/null 2>&1; then
-            log_error "Falha ao conectar com Docker"
-            exit 1
-        fi
-    fi
-
-    # Limpar cache do Docker
-    log_info "Limpando cache do Docker..."
-    systemctl stop docker
-    rm -rf /var/lib/docker/tmp/*
-    systemctl start docker
-    sleep 5
-
-    # Pull da imagem WAHA antes de configurar
-    log_info "Baixando imagem do WAHA..."
-    for i in {1..3}; do
-        if docker pull devlikeapro/waha; then
-            break
-        fi
-        log_warn "Tentativa $i falhou. Tentando novamente..."
-        sleep 5
-    done
-
-    if ! docker images | grep -q devlikeapro/waha; then
-        log_error "Falha ao baixar imagem do WAHA após 3 tentativas"
-        exit 1
-    fi
+    # Cria estrutura de diretórios
+    mkdir -p docker/waha/tokens docker/waha/files
 
     # Gera credenciais
     API_KEY=$(openssl rand -hex 32)
@@ -404,21 +358,20 @@ fi
 
     # Baixa e configura docker-compose
     log_info "Configurando Docker Compose..."
-    WAHA_COMPOSE_URL="https://raw.githubusercontent.com/alanalvestech/newvps/main/configs/waha/docker-compose.yml.template"
-    curl -s "$WAHA_COMPOSE_URL" > docker-compose-waha.yaml
+    WAHA_COMPOSE_URL="https://raw.githubusercontent.com/alanalvestech/newvps/refs/heads/main/configs/waha/docker-compose.yml.template"
+    curl -s "$WAHA_COMPOSE_URL" > docker/waha/docker-compose.yaml
 
     # Baixa e configura env
     log_info "Configurando variáveis de ambiente..."
-    WAHA_ENV_URL="https://raw.githubusercontent.com/alanalvestech/newvps/main/configs/waha/env.template"
+    WAHA_ENV_URL="https://raw.githubusercontent.com/alanalvestech/newvps/refs/heads/main/configs/waha/env.template"
     curl -s "$WAHA_ENV_URL" | \
         sed "s/{{API_KEY}}/${API_KEY}/g" | \
         sed "s/{{ADMIN_PASS}}/${ADMIN_PASS}/g" | \
-        sed "s/{{SWAGGER_PASS}}/${SWAGGER_PASS}/g" > .env
-
-    mkdir -p tokens files
+        sed "s/{{SWAGGER_PASS}}/${SWAGGER_PASS}/g" > docker/waha/.env
 
     log_info "Iniciando WAHA..."
-    docker compose -f docker-compose-waha.yaml up -d
+    cd docker/waha
+    docker compose up -d
 
     log_info "Aguardando serviço iniciar..."
     sleep 10
@@ -428,6 +381,7 @@ fi
         exit 1
     fi
 
+    cd ../..
     log_info "WAHA instalado com sucesso!"
 }
 
