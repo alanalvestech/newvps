@@ -64,24 +64,21 @@ uninstall() {
     rm -f /etc/nginx/sites-enabled/app
     rm -f /etc/nginx/sites-available/app
 
+    # Para o serviço Docker
+    log_info "Parando serviço Docker..."
+    if systemctl list-unit-files | grep -q docker.service; then
+        systemctl stop docker || true
+        systemctl disable docker || true
+    fi
+
     # Remove WAHA
     log_info "Removendo WAHA..."
     if command -v docker &> /dev/null; then
         if [ -f docker/waha/docker-compose.yaml ]; then
-            docker compose -f docker/waha/docker-compose.yaml down || true
+            docker compose -f docker/waha/docker-compose.yaml down -v || true
         fi
     fi
-    rm -rf docker/waha
-    rm -rf tokens
-    rm -rf files
 
-    # Remove diretório do projeto
-    log_info "Removendo arquivos do projeto..."
-    rm -rf /opt/newvps
-
-    # Remove Docker and containers
-    log_info "Removendo Docker e todos os containers..."
-    
     # Para todos os containers
     if command -v docker &> /dev/null; then
         docker stop $(docker ps -aq) 2>/dev/null || true
@@ -90,14 +87,17 @@ uninstall() {
         docker volume prune -f 2>/dev/null || true
     fi
 
-    # Para o serviço Docker
-    if systemctl list-unit-files | grep -q docker.service; then
-        systemctl stop docker || true
-        systemctl disable docker || true
-    fi
+    # Remove diretório do projeto
+    log_info "Removendo arquivos do projeto..."
+    rm -rf /opt/newvps
+    rm -rf docker/waha
+    rm -rf tokens
+    rm -rf files
 
-    # Espera um pouco para garantir que tudo foi parado
-    sleep 5
+    # Força kill de processos Docker remanescentes
+    log_info "Removendo Docker..."
+    pkill -9 -f docker || true
+    sleep 2
 
     # Remove pacotes Docker
     for pkg in docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin; do
@@ -106,19 +106,11 @@ uninstall() {
         fi
     done
 
-    # Força kill de processos Docker remanescentes
-    pkill -9 -f docker || true
-    
-    # Espera novamente
-    sleep 2
-
-    # Remove diretórios e arquivos
+    # Remove diretórios Docker com força
     rm -rf /var/lib/docker
     rm -rf /etc/docker
     rm -rf /etc/apt/keyrings/docker.gpg
     rm -f /etc/apt/sources.list.d/docker.list
-
-    log_info "Docker removido com sucesso!"
 
     # Remove Git if installed
     log_info "Removendo Git..."
@@ -442,6 +434,3 @@ uninstall() {
 # Finalização
 ########################################################
 log_info "Instalação concluída!"
-
-# Remove script de instalação
-rm -f boot.sh
