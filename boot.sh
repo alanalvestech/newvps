@@ -73,25 +73,44 @@ uninstall() {
 
     # Remove Docker and containers
     log_info "Removendo Docker e todos os containers..."
+    
+    # Para todos os containers
+    if command -v docker &> /dev/null; then
+        docker stop $(docker ps -aq) 2>/dev/null || true
+        docker rm $(docker ps -aq) 2>/dev/null || true
+        docker network prune -f 2>/dev/null || true
+        docker volume prune -f 2>/dev/null || true
+    fi
+
+    # Para o serviço Docker
     if systemctl list-unit-files | grep -q docker.service; then
         systemctl stop docker || true
+        systemctl disable docker || true
     fi
-    if command -v docker &> /dev/null; then
-        docker system prune -af || true
-    fi
-    
-    # Remove Docker packages if they exist
+
+    # Espera um pouco para garantir que tudo foi parado
+    sleep 5
+
+    # Remove pacotes Docker
     for pkg in docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin; do
         if dpkg -l | grep -q "^ii.*$pkg"; then
             apt-get remove --purge -y "$pkg" || true
         fi
     done
 
-    # Remove Docker directories and files
+    # Força kill de processos Docker remanescentes
+    pkill -9 -f docker || true
+    
+    # Espera novamente
+    sleep 2
+
+    # Remove diretórios e arquivos
     rm -rf /var/lib/docker
     rm -rf /etc/docker
     rm -rf /etc/apt/keyrings/docker.gpg
     rm -f /etc/apt/sources.list.d/docker.list
+
+    log_info "Docker removido com sucesso!"
 
     # Remove Git if installed
     log_info "Removendo Git..."
@@ -124,17 +143,21 @@ uninstall() {
 ########################################################
 # Verificar argumentos
 ########################################################
-if [ "${1:-}" = "uninstall" ]; then
-    uninstall "${@}"
-fi
+{
+    if [ "${1:-}" = "uninstall" ]; then
+        uninstall "${@}"
+    fi
+}
 
 ########################################################
 # Verificar root
 ########################################################
-if [ "$EUID" -ne 0 ]; then 
-    log_error "Execute como root"
-    exit 1
-fi
+{
+    if [ "$EUID" -ne 0 ]; then 
+        log_error "Execute como root"
+        exit 1
+    fi
+}
 
 ########################################################
 # Coletar informações necessárias
