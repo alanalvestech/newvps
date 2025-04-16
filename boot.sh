@@ -339,47 +339,15 @@ uninstall() {
     mkdir -p /etc/nginx/ssl
     openssl dhparam -out /etc/nginx/ssl/dhparam.pem 2048
 
-    # Configura Nginx para o domínio
-    log_info "Configurando Nginx..."
-    cat > /etc/nginx/sites-available/app << EOF
-server {
-    listen 80;
-    server_name ${DOMAIN};
+    # Baixa e configura template do Nginx
+    log_info "Baixando template do Nginx..."
+    NGINX_TEMPLATE_URL="https://raw.githubusercontent.com/alanalvestech/newvps/refs/heads/main/configs/nginx/app.conf.template"
+    wget -q "$NGINX_TEMPLATE_URL" -O /tmp/nginx.template
     
-    location / {
-        return 301 https://\$host\$request_uri;
-    }
-}
-
-server {
-    listen 443 ssl;
-    server_name ${DOMAIN};
-
-    ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
-    ssl_dhparam /etc/nginx/ssl/dhparam.pem;
-
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384;
-    ssl_prefer_server_ciphers off;
-
-    ssl_session_timeout 1d;
-    ssl_session_cache shared:SSL:50m;
-    ssl_session_tickets off;
-
-    # HSTS
-    add_header Strict-Transport-Security "max-age=63072000" always;
-
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host \$host;
-        proxy_cache_bypass \$http_upgrade;
-    }
-}
-EOF
+    # Substitui variáveis no template
+    log_info "Configurando Nginx..."
+    sed "s/{{DOMAIN}}/${DOMAIN}/g" /tmp/nginx.template > /etc/nginx/sites-available/app
+    rm -f /tmp/nginx.template
 
     ln -sf /etc/nginx/sites-available/app /etc/nginx/sites-enabled/
     rm -f /etc/nginx/sites-enabled/default
