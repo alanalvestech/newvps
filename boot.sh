@@ -181,41 +181,27 @@ uninstall() {
     echo ""
     
     # Lê domínio
-    MAX_TRIES=3
-    for i in $(seq 1 $MAX_TRIES); do
-        read -p "Digite seu domínio: " DOMAIN
-        
-        if [ -z "$DOMAIN" ]; then
-            log_error "Domínio é obrigatório (tentativa $i de $MAX_TRIES)"
-            [ $i -eq $MAX_TRIES ] && exit 1
-            continue
-        fi
-        
-        # Remove http:// ou https:// se existir
-        DOMAIN=$(echo "$DOMAIN" | sed 's#^http[s]*://##')
-        # Remove barra no final se existir
-        DOMAIN=$(echo "$DOMAIN" | sed 's#/$##')
-        break
-    done
-
+    read -p "Digite seu domínio: " DOMAIN
+    if [ -z "$DOMAIN" ]; then
+        log_error "Domínio é obrigatório"
+        exit 1
+    fi
+    
+    # Remove http:// ou https:// e barra final
+    DOMAIN=$(echo "$DOMAIN" | sed -e 's#^http[s]*://##' -e 's#/$##')
+    
     # Lê email
-    for i in $(seq 1 $MAX_TRIES); do
-        read -p "Digite seu email: " EMAIL
-        
-        if [ -z "$EMAIL" ]; then
-            log_error "Email é obrigatório (tentativa $i de $MAX_TRIES)"
-            [ $i -eq $MAX_TRIES ] && exit 1
-            continue
-        fi
-        
-        if ! echo "$EMAIL" | grep -qE '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'; then
-            log_error "Email inválido. Use o formato: usuario@dominio.com (tentativa $i de $MAX_TRIES)"
-            [ $i -eq $MAX_TRIES ] && exit 1
-            continue
-        fi
-        
-        break
-    done
+    read -p "Digite seu email: " EMAIL
+    if [ -z "$EMAIL" ]; then
+        log_error "Email é obrigatório"
+        exit 1
+    fi
+    
+    # Valida formato do email
+    if ! echo "$EMAIL" | grep -qE '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'; then
+        log_error "Email inválido. Use o formato: usuario@dominio.com"
+        exit 1
+    fi
 
     # Obtém IP da VPS
     log_info "Obtendo IP do servidor..."
