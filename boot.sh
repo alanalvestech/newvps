@@ -277,56 +277,15 @@ fi
     apt-get install -y nginx
 
     log_info "Configurando proxy reverso..."
-    cat > /etc/nginx/sites-available/app << EOF
-# Configuração HTTP
-server {
-    listen 80 default_server;
-    listen [::]:80 default_server;
+    log_info "Baixando template do Nginx..."
+    NGINX_TEMPLATE_URL="https://raw.githubusercontent.com/alanalvestech/newvps/main/configs/nginx/app.conf.template"
+    curl -s "$NGINX_TEMPLATE_URL" | sed "s/{{DOMAIN}}/${DOMAIN}/g" > /etc/nginx/sites-available/app
 
-    # Buffer sizes
-    client_max_body_size 64M;
-    client_body_buffer_size 128k;
-    
-    # Timeouts
-    client_header_timeout 60;
-    client_body_timeout 60;
-    keepalive_timeout 60;
-    send_timeout 60;
-
-    # Proxy para a API
-    location / {
-        proxy_pass http://localhost:8000;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        
-        # Timeouts do proxy
-        proxy_connect_timeout 60;
-        proxy_send_timeout 60;
-        proxy_read_timeout 60;
-        
-        # Buffer sizes do proxy
-        proxy_buffer_size 4k;
-        proxy_buffers 4 32k;
-        proxy_busy_buffers_size 64k;
+    # Testa configuração
+    nginx -t || {
+        log_error "Configuração do Nginx inválida"
+        exit 1
     }
-
-    # Configuração para o WAHA
-    location /waha/ {
-        proxy_pass http://localhost:3000/;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        
-        # Timeouts do proxy
-        proxy_connect_timeout 60;
-        proxy_send_timeout 60;
-        proxy_read_timeout 60;
-    }
-}
-EOF
 
     ln -sf /etc/nginx/sites-available/app /etc/nginx/sites-enabled/
     rm -f /etc/nginx/sites-enabled/default
@@ -443,7 +402,6 @@ EOF
     fi
 
     log_info "WAHA instalado com sucesso!"
-    log_info "Dashboard disponível em: http://localhost:3000/dashboard"
 }
 
 ########################################################
@@ -470,81 +428,16 @@ configurar_ssl() {
     openssl dhparam -out /etc/nginx/ssl/dhparam.pem 2048
     
     # Configura Nginx para o domínio
-    cat > /etc/nginx/sites-available/app << EOF
-server {
-    listen 80;
-    listen [::]:80;
-    server_name ${DOMAIN};
-    
-    location / {
-        return 301 https://\$host\$request_uri;
+    log_info "Baixando template do Nginx..."
+    NGINX_TEMPLATE_URL="https://raw.githubusercontent.com/alanalvestech/newvps/main/configs/nginx/app.conf.template"
+    curl -s "$NGINX_TEMPLATE_URL" | sed "s/{{DOMAIN}}/${DOMAIN}/g" > /etc/nginx/sites-available/app
+
+    # Testa configuração
+    nginx -t || {
+        log_error "Configuração do Nginx inválida"
+        exit 1
     }
-}
-
-server {
-    listen 443 ssl http2;
-    listen [::]:443 ssl http2;
-    server_name ${DOMAIN};
     
-    # SSL
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_prefer_server_ciphers off;
-    ssl_dhparam /etc/nginx/ssl/dhparam.pem;
-    ssl_session_timeout 1d;
-    ssl_session_cache shared:SSL:50m;
-    ssl_stapling on;
-    ssl_stapling_verify on;
-    resolver 8.8.8.8 8.8.4.4 valid=300s;
-    resolver_timeout 5s;
-    
-    # HSTS
-    add_header Strict-Transport-Security "max-age=63072000" always;
-    
-    # Buffer sizes
-    client_max_body_size 64M;
-    client_body_buffer_size 128k;
-    
-    # Timeouts
-    client_header_timeout 60;
-    client_body_timeout 60;
-    keepalive_timeout 60;
-    send_timeout 60;
-
-    # Proxy para a API
-    location / {
-        proxy_pass http://localhost:8000;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        
-        # Timeouts do proxy
-        proxy_connect_timeout 60;
-        proxy_send_timeout 60;
-        proxy_read_timeout 60;
-        
-        # Buffer sizes do proxy
-        proxy_buffer_size 4k;
-        proxy_buffers 4 32k;
-        proxy_busy_buffers_size 64k;
-    }
-
-    # Configuração para o WAHA
-    location /waha/ {
-        proxy_pass http://localhost:3000/;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        
-        # Timeouts do proxy
-        proxy_connect_timeout 60;
-        proxy_send_timeout 60;
-        proxy_read_timeout 60;
-    }
-}
-EOF
-
     # Configura renovação automática
     log_info "Configurando renovação automática..."
     echo "0 0,12 * * * root python3 -c 'import random; import time; time.sleep(random.random() * 3600)' && certbot renew -q" > /etc/cron.d/certbot
