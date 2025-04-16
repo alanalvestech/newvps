@@ -144,6 +144,9 @@ uninstall() {
     apt-get autoremove --purge -y || true
     apt-get clean
 
+    # Remove script de instalação
+    rm -f boot.sh
+
     log_info "Desinstalação concluída com sucesso!"
     exit 0
 }
@@ -382,7 +385,7 @@ uninstall() {
     
     # Obtém certificado SSL
     log_info "Obtendo certificados..."
-    certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos -m "$EMAIL" --redirect
+    certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos -m "$EMAIL"
 
     # Aplica configuração completa do Nginx com SSL
     log_info "Aplicando configuração SSL..."
