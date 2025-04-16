@@ -180,29 +180,30 @@ uninstall() {
     echo "2. Seu email para notificações SSL"
     echo ""
     
-    DOMAIN=""
-    while [ -z "$DOMAIN" ]; do
-        read -p "Digite seu domínio: " DOMAIN
-        if [ -z "$DOMAIN" ]; then
-            log_error "Domínio é obrigatório"
-        else
-            # Remove http:// ou https:// se existir
-            DOMAIN=$(echo "$DOMAIN" | sed 's#^http[s]*://##')
-            # Remove barra no final se existir
-            DOMAIN=$(echo "$DOMAIN" | sed 's#/$##')
-        fi
-    done
+    # Lê domínio
+    read -p "Digite seu domínio: " DOMAIN
+    if [ -z "$DOMAIN" ]; then
+        log_error "Domínio é obrigatório"
+        exit 1
+    fi
+    
+    # Remove http:// ou https:// se existir
+    DOMAIN=$(echo "$DOMAIN" | sed 's#^http[s]*://##')
+    # Remove barra no final se existir
+    DOMAIN=$(echo "$DOMAIN" | sed 's#/$##')
 
-    EMAIL=""
-    while [ -z "$EMAIL" ]; do
-        read -p "Digite seu email: " EMAIL
-        if [ -z "$EMAIL" ]; then
-            log_error "Email é obrigatório"
-        elif ! echo "$EMAIL" | grep -qE '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'; then
-            log_error "Email inválido. Use o formato: usuario@dominio.com"
-            EMAIL=""
-        fi
-    done
+    # Lê email
+    read -p "Digite seu email: " EMAIL
+    if [ -z "$EMAIL" ]; then
+        log_error "Email é obrigatório"
+        exit 1
+    fi
+    
+    # Valida formato do email
+    if ! echo "$EMAIL" | grep -qE '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'; then
+        log_error "Email inválido. Use o formato: usuario@dominio.com"
+        exit 1
+    fi
 
     # Obtém IP da VPS
     log_info "Obtendo IP do servidor..."
