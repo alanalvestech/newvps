@@ -180,63 +180,42 @@ uninstall() {
     echo "2. Seu email para notificações SSL"
     echo ""
     
-    # Função para ler input com retry
-    read_with_retry() {
-        local prompt="$1"
-        local var_name="$2"
-        local max_attempts=3
-        local attempt=1
+    # Lê domínio
+    MAX_TRIES=3
+    for i in $(seq 1 $MAX_TRIES); do
+        read -p "Digite seu domínio: " DOMAIN
         
-        while [ $attempt -le $max_attempts ]; do
-            read -p "$prompt" value
-            
-            if [ -z "$value" ]; then
-                log_error "Valor não pode ser vazio (tentativa $attempt de $max_attempts)"
-                attempt=$((attempt + 1))
-                continue
-            fi
-            
-            eval "$var_name='$value'"
-            return 0
-        done
+        if [ -z "$DOMAIN" ]; then
+            log_error "Domínio é obrigatório (tentativa $i de $MAX_TRIES)"
+            [ $i -eq $MAX_TRIES ] && exit 1
+            continue
+        fi
         
-        log_error "Número máximo de tentativas excedido"
-        exit 1
-    }
+        # Remove http:// ou https:// se existir
+        DOMAIN=$(echo "$DOMAIN" | sed 's#^http[s]*://##')
+        # Remove barra no final se existir
+        DOMAIN=$(echo "$DOMAIN" | sed 's#/$##')
+        break
+    done
 
-    # Lê domínio com retry
-    read_with_retry "Digite seu domínio: " DOMAIN
-    
-    # Remove http:// ou https:// se existir
-    DOMAIN=$(echo "$DOMAIN" | sed 's#^http[s]*://##')
-    # Remove barra no final se existir
-    DOMAIN=$(echo "$DOMAIN" | sed 's#/$##')
-
-    # Lê e valida email com retry
-    max_attempts=3
-    attempt=1
-    while [ $attempt -le $max_attempts ]; do
+    # Lê email
+    for i in $(seq 1 $MAX_TRIES); do
         read -p "Digite seu email: " EMAIL
         
         if [ -z "$EMAIL" ]; then
-            log_error "Email é obrigatório (tentativa $attempt de $max_attempts)"
-            attempt=$((attempt + 1))
+            log_error "Email é obrigatório (tentativa $i de $MAX_TRIES)"
+            [ $i -eq $MAX_TRIES ] && exit 1
             continue
         fi
         
         if ! echo "$EMAIL" | grep -qE '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'; then
-            log_error "Email inválido. Use o formato: usuario@dominio.com (tentativa $attempt de $max_attempts)"
-            attempt=$((attempt + 1))
+            log_error "Email inválido. Use o formato: usuario@dominio.com (tentativa $i de $MAX_TRIES)"
+            [ $i -eq $MAX_TRIES ] && exit 1
             continue
         fi
         
         break
     done
-
-    if [ $attempt -gt $max_attempts ]; then
-        log_error "Número máximo de tentativas excedido"
-        exit 1
-    fi
 
     # Obtém IP da VPS
     log_info "Obtendo IP do servidor..."
