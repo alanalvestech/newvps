@@ -85,6 +85,7 @@ uninstall() {
         docker rm $(docker ps -aq) 2>/dev/null || true
         docker network prune -f 2>/dev/null || true
         docker volume prune -f 2>/dev/null || true
+        docker system prune -af 2>/dev/null || true
     fi
 
     # Remove diretório do projeto
@@ -107,6 +108,9 @@ uninstall() {
     done
 
     # Remove diretórios Docker com força
+    systemctl stop docker.socket || true
+    systemctl stop docker.service || true
+    rm -rf /var/run/docker.sock
     rm -rf /var/lib/docker
     rm -rf /etc/docker
     rm -rf /etc/apt/keyrings/docker.gpg
