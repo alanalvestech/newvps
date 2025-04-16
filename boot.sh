@@ -351,18 +351,17 @@ uninstall() {
     NGINX_TEMPLATE_URL="https://raw.githubusercontent.com/alanalvestech/newvps/refs/heads/main/configs/nginx/app.conf.template"
     wget -q "$NGINX_TEMPLATE_URL" -O /opt/newvps/templates/nginx.conf.template
     
-    # Substitui variáveis no template
+    # Substitui variáveis no template e usa apenas a parte HTTP
     log_info "Configurando Nginx..."
-    sed "s/{{DOMAIN}}/${DOMAIN}/g" /opt/newvps/templates/nginx.conf.template > /etc/nginx/sites-available/app
+    sed -n '/# Configuração HTTP inicial/,/^}$/p' /opt/newvps/templates/nginx.conf.template | \
+    sed "s/{{DOMAIN}}/${DOMAIN}/g" > /etc/nginx/sites-available/app
 
     ln -sf /etc/nginx/sites-available/app /etc/nginx/sites-enabled/
     rm -f /etc/nginx/sites-enabled/default
 
-    # Testa configuração inicial sem SSL
+    # Testa e reinicia Nginx
     log_info "Testando configuração do Nginx..."
-    mv /etc/nginx/sites-enabled/app /etc/nginx/sites-enabled/app.tmp
     nginx -t && systemctl restart nginx
-    mv /etc/nginx/sites-enabled/app.tmp /etc/nginx/sites-enabled/app
 }
 
 ########################################################
@@ -385,8 +384,12 @@ uninstall() {
     log_info "Obtendo certificados..."
     certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos -m "$EMAIL" --redirect
 
+    # Aplica configuração completa do Nginx com SSL
+    log_info "Aplicando configuração SSL..."
+    sed "s/{{DOMAIN}}/${DOMAIN}/g" /opt/newvps/templates/nginx.conf.template > /etc/nginx/sites-available/app
+    
     # Reinicia Nginx com nova configuração
-    systemctl restart nginx
+    nginx -t && systemctl restart nginx
 }
 
 ########################################################

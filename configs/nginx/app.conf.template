@@ -1,3 +1,53 @@
+# Configuração HTTP inicial
+server {
+    listen 80;
+    listen [::]:80;
+    server_name {{DOMAIN}};
+    
+    # Buffer sizes
+    client_max_body_size 64M;
+    client_body_buffer_size 128k;
+    
+    # Timeouts
+    client_header_timeout 60;
+    client_body_timeout 60;
+    keepalive_timeout 60;
+    send_timeout 60;
+
+    # Proxy para a API
+    location / {
+        proxy_pass http://localhost:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # Timeouts do proxy
+        proxy_connect_timeout 60;
+        proxy_send_timeout 60;
+        proxy_read_timeout 60;
+        
+        # Buffer sizes do proxy
+        proxy_buffer_size 4k;
+        proxy_buffers 4 32k;
+        proxy_busy_buffers_size 64k;
+    }
+
+    # Configuração para o WAHA
+    location /waha/ {
+        proxy_pass http://localhost:3000/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # Timeouts do proxy
+        proxy_connect_timeout 60;
+        proxy_send_timeout 60;
+        proxy_read_timeout 60;
+    }
+}
+
 # Configuração HTTP - Redireciona para HTTPS
 server {
     listen 80;
