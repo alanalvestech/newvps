@@ -3,39 +3,12 @@
 # VPS Bootstrap
 # Uso: 
 #   Instalação: curl -s https://raw.githubusercontent.com/alanalvestech/newvps/main/boot.sh | sudo bash
-#   Instalação com domínio: curl -s https://raw.githubusercontent.com/alanalvestech/newvps/main/boot.sh | sudo bash -s -- -d exemplo.com -e admin@exemplo.com
 #   Desinstalação: sudo bash boot.sh uninstall
 
 set -euo pipefail
 
-# Variáveis padrão
-DOMAIN="localhost"
-EMAIL="admin@localhost"
-WWW_DOMAIN=""
-
-# Processa argumentos
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        -d|--domain)
-            DOMAIN="$2"
-            WWW_DOMAIN="www.$2"
-            shift 2
-            ;;
-        -e|--email)
-            EMAIL="$2"
-            shift 2
-            ;;
-        *)
-            shift
-            ;;
-    esac
-done
-
-# Se o domínio não for localhost, configura o www
-DOMAIN_CONFIG="$DOMAIN"
-if [ "$WWW_DOMAIN" != "" ]; then
-    DOMAIN_CONFIG="$DOMAIN $WWW_DOMAIN"
-fi
+# Obtém IP da VPS
+SERVER_IP=$(curl -s http://ipinfo.io/ip)
 
 ########################################################
 # Funções de log
@@ -77,14 +50,6 @@ uninstall() {
         log_error "Execute como root"
         exit 1
     fi
-
-    # Remove Certbot
-    log_info "Removendo Certbot..."
-    if command -v certbot &> /dev/null; then
-        certbot delete --non-interactive || true
-        apt-get remove --purge -y certbot python3-certbot-nginx || true
-    fi
-    rm -rf /etc/letsencrypt
 
     # Remove Nginx
     log_info "Removendo Nginx..."
@@ -311,9 +276,8 @@ fi
     cat > /etc/nginx/sites-available/app << EOF
 # Configuração HTTP
 server {
-    listen 80;
-    listen [::]:80;
-    server_name ${DOMAIN_CONFIG};
+    listen 80 default_server;
+    listen [::]:80 default_server;
 
     # Buffer sizes
     client_max_body_size 64M;
@@ -328,10 +292,10 @@ server {
     # Proxy para a API
     location / {
         proxy_pass http://localhost:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
         
         # Timeouts do proxy
         proxy_connect_timeout 60;
@@ -347,10 +311,10 @@ server {
     # Configuração para o WAHA
     location /waha/ {
         proxy_pass http://localhost:3000/;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
         
         # Timeouts do proxy
         proxy_connect_timeout 60;
@@ -373,134 +337,8 @@ EOF
     systemctl enable nginx
 
     log_info "Nginx instalado e configurado com sucesso!"
-}
-
-########################################################
-# Instalar e Configurar Certbot (Let's Encrypt)
-########################################################
-{
-    log_info "Instalando Certbot..."
-    wait_for_apt
-    apt-get install -y certbot
-
-    log_info "Configurando certificado SSL..."
-    # Para o Nginx para liberar a porta 80
-    systemctl stop nginx
-
-    # Tenta obter certificado, se falhar continua sem SSL
-    CERT_DOMAINS=""
-    if [ "$WWW_DOMAIN" != "" ]; then
-        CERT_DOMAINS="-d $DOMAIN -d $WWW_DOMAIN"
-    else
-        CERT_DOMAINS="-d $DOMAIN"
-    fi
-
-    if certbot certonly --standalone \
-        --non-interactive \
-        --agree-tos \
-        --preferred-challenges http \
-        --email "$EMAIL" \
-        $CERT_DOMAINS; then
-        
-        log_info "Certificado SSL instalado com sucesso!"
-        
-        # Configurar renovação automática
-        log_info "Configurando renovação automática..."
-        (crontab -l 2>/dev/null; echo "0 12 * * * systemctl stop nginx && /usr/bin/certbot renew --quiet && systemctl start nginx") | crontab -
-
-        # Configurar Nginx com SSL
-        log_info "Configurando Nginx com SSL..."
-        cat > /etc/nginx/sites-available/app << EOF
-# Configuração HTTP - redirecionamento para HTTPS
-server {
-    listen 80;
-    listen [::]:80;
-    server_name ${DOMAIN_CONFIG};
-    
-    # Redireciona todo tráfego HTTP para HTTPS
-    location / {
-        return 301 https://\$host\$request_uri;
-    }
-}
-
-# Configuração HTTPS
-server {
-    listen 443 ssl http2;
-    listen [::]:443 ssl http2;
-    server_name ${DOMAIN_CONFIG};
-
-    ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
-    ssl_trusted_certificate /etc/letsencrypt/live/${DOMAIN}/chain.pem;
-
-    # Configurações SSL otimizadas
-    ssl_session_timeout 1d;
-    ssl_session_cache shared:SSL:50m;
-    ssl_session_tickets off;
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384;
-    ssl_prefer_server_ciphers off;
-    
-    # Cabeçalhos de segurança
-    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
-    add_header X-Frame-Options SAMEORIGIN;
-    add_header X-Content-Type-Options nosniff;
-    add_header X-XSS-Protection "1; mode=block";
-    
-    # Buffer sizes
-    client_max_body_size 64M;
-    client_body_buffer_size 128k;
-    
-    # Timeouts
-    client_header_timeout 60;
-    client_body_timeout 60;
-    keepalive_timeout 60;
-    send_timeout 60;
-
-    # Proxy para a API
-    location / {
-        proxy_pass http://localhost:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        
-        # Timeouts do proxy
-        proxy_connect_timeout 60;
-        proxy_send_timeout 60;
-        proxy_read_timeout 60;
-        
-        # Buffer sizes do proxy
-        proxy_buffer_size 4k;
-        proxy_buffers 4 32k;
-        proxy_busy_buffers_size 64k;
-    }
-
-    # Configuração para o WAHA
-    location /waha/ {
-        proxy_pass http://localhost:3000/;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        
-        # Timeouts do proxy
-        proxy_connect_timeout 60;
-        proxy_send_timeout 60;
-        proxy_read_timeout 60;
-    }
-}
-EOF
-    else
-        log_warn "Falha ao obter certificado SSL. Continuando sem HTTPS."
-    fi
-
-    # Testar e reiniciar Nginx
-    nginx -t || {
-        log_error "Configuração do Nginx inválida"
-        exit 1
-    }
-    systemctl start nginx
+    log_info "Acesse: http://$SERVER_IP"
+    log_info "WAHA disponível em: http://$SERVER_IP/waha/"
 }
 
 ########################################################
