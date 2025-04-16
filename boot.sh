@@ -404,15 +404,15 @@ uninstall() {
     # Baixa e configura docker-compose
     log_info "Configurando Docker Compose..."
     WAHA_COMPOSE_URL="https://raw.githubusercontent.com/alanalvestech/newvps/refs/heads/main/configs/waha/docker-compose.yml.template"
-    curl -s "$WAHA_COMPOSE_URL" > docker/waha/docker-compose.yaml
+    wget -q "$WAHA_COMPOSE_URL" -O docker/waha/docker-compose.yaml
 
-    # Baixa e configura env
+    # Configura variáveis de ambiente
     log_info "Configurando variáveis de ambiente..."
-    WAHA_ENV_URL="https://raw.githubusercontent.com/alanalvestech/newvps/refs/heads/main/configs/waha/env.template"
-    curl -s "$WAHA_ENV_URL" | \
-        sed "s/{{API_KEY}}/${API_KEY}/g" | \
-        sed "s/{{ADMIN_PASS}}/${ADMIN_PASS}/g" | \
-        sed "s/{{SWAGGER_PASS}}/${SWAGGER_PASS}/g" > docker/waha/.env
+    cat > docker/waha/.env << EOF
+API_KEY=${API_KEY}
+ADMIN_PASSWORD=${ADMIN_PASS}
+SWAGGER_PASSWORD=${SWAGGER_PASS}
+EOF
 
     log_info "Iniciando WAHA..."
     cd docker/waha
