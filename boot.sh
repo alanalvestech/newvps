@@ -273,13 +273,26 @@ fi
 
     log_info "Configurando proxy reverso..."
     cat > /etc/nginx/sites-available/app << 'EOF'
+# Configuração HTTP - redirecionamento para HTTPS
 server {
     listen 80;
     listen [::]:80;
     server_name alanalves.tech www.alanalves.tech;
+    
+    # Redireciona todo tráfego HTTP para HTTPS
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+# Configuração HTTPS
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name alanalves.tech www.alanalves.tech;
 
     # Configurações SSL serão adicionadas pelo Certbot aqui
-
+    
     # Cabeçalhos de segurança
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
     add_header X-Frame-Options SAMEORIGIN;
@@ -296,6 +309,7 @@ server {
     keepalive_timeout 60;
     send_timeout 60;
 
+    # Proxy para a API
     location / {
         proxy_pass http://localhost:8000;
         proxy_set_header Host $host;
@@ -313,13 +327,31 @@ server {
         proxy_buffers 4 32k;
         proxy_busy_buffers_size 64k;
     }
+
+    # Configuração para o WAHA
+    location /waha/ {
+        proxy_pass http://localhost:3000/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # Timeouts do proxy
+        proxy_connect_timeout 60;
+        proxy_send_timeout 60;
+        proxy_read_timeout 60;
+    }
 }
 EOF
 
     ln -sf /etc/nginx/sites-available/app /etc/nginx/sites-enabled/
     rm -f /etc/nginx/sites-enabled/default
 
-    nginx -t
+    # Testar configuração
+    nginx -t || {
+        log_error "Configuração do Nginx inválida"
+        exit 1
+    }
 
     systemctl restart nginx
     systemctl enable nginx
@@ -333,15 +365,17 @@ EOF
 {
     log_info "Instalando Certbot..."
     wait_for_apt
-    apt-get install -y certbot python3-certbot-nginx
+    apt-get install -y certbot
 
     log_info "Configurando certificado SSL..."
+    # Para o Nginx para liberar a porta 80
+    systemctl stop nginx
+
     # Tenta obter certificado, se falhar continua sem SSL
-    if certbot --nginx \
+    if certbot certonly --standalone \
         --non-interactive \
         --agree-tos \
-        --redirect \
-        --staple-ocsp \
+        --preferred-challenges http \
         --email alan@alanalves.tech \
         -d alanalves.tech \
         -d www.alanalves.tech; then
@@ -350,10 +384,16 @@ EOF
         
         # Configurar renovação automática
         log_info "Configurando renovação automática..."
-        (crontab -l 2>/dev/null; echo "0 12 * * * /usr/bin/certbot renew --quiet") | crontab -
+        (crontab -l 2>/dev/null; echo "0 12 * * * systemctl stop nginx && /usr/bin/certbot renew --quiet && systemctl start nginx") | crontab -
+
+        # Configurar certificados no Nginx
+        sed -i "s|# Configurações SSL serão adicionadas pelo Certbot aqui|ssl_certificate /etc/letsencrypt/live/alanalves.tech/fullchain.pem;\n    ssl_certificate_key /etc/letsencrypt/live/alanalves.tech/privkey.pem;\n    ssl_trusted_certificate /etc/letsencrypt/live/alanalves.tech/chain.pem;\n\n    # Configurações SSL otimizadas\n    ssl_session_timeout 1d;\n    ssl_session_cache shared:SSL:50m;\n    ssl_session_tickets off;\n    ssl_protocols TLSv1.2 TLSv1.3;\n    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384;\n    ssl_prefer_server_ciphers off;|" /etc/nginx/sites-available/app
     else
         log_warn "Falha ao obter certificado SSL. Verifique se os registros DNS estão configurados corretamente."
     fi
+
+    # Reinicia o Nginx
+    systemctl start nginx
 }
 
 ########################################################
