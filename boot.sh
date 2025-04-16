@@ -420,3 +420,6 @@ uninstall() {
 # Finalização
 ########################################################
 log_info "Instalação concluída!"
+
+# Remove arquivo temporário
+rm -f /tmp/boot.sh
