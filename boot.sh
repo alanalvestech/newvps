@@ -55,16 +55,6 @@ uninstall() {
     # Remove Nginx
     log_info "Removendo Nginx..."
     
-    # Backup dos certificados SSL se existirem
-    if [ -d "/etc/letsencrypt/live" ]; then
-        log_info "Fazendo backup dos certificados SSL..."
-        mkdir -p /root/ssl-backup
-        cp -r /etc/letsencrypt/live/* /root/ssl-backup/
-        cp -r /etc/letsencrypt/archive/* /root/ssl-backup/
-        cp /etc/letsencrypt/renewal/* /root/ssl-backup/
-        log_info "Backup dos certificados salvo em /root/ssl-backup"
-    fi
-    
     # Para todos os processos do Nginx
     pkill -9 nginx || true
     
@@ -440,48 +430,48 @@ uninstall() {
 ########################################################
 # Instalar WAHA
 ########################################################
-{
-    log_info "Instalando WAHA..."
+# {
+#     log_info "Instalando WAHA..."
 
-    # Cria estrutura de diretórios
-    mkdir -p docker/waha/tokens docker/waha/files
+#     # Cria estrutura de diretórios
+#     mkdir -p docker/waha/tokens docker/waha/files
 
-    # Gera credenciais
-    API_KEY=$(openssl rand -hex 32)
-    ADMIN_PASS=$(openssl rand -base64 12)
-    SWAGGER_PASS=$(openssl rand -base64 12)
+#     # Gera credenciais
+#     API_KEY=$(openssl rand -hex 32)
+#     ADMIN_PASS=$(openssl rand -base64 12)
+#     SWAGGER_PASS=$(openssl rand -base64 12)
 
-    # Baixa e configura docker-compose
-    log_info "Configurando Docker Compose..."
-    WAHA_COMPOSE_URL="https://raw.githubusercontent.com/alanalvestech/newvps/refs/heads/main/configs/waha/docker-compose.yml.template"
-    wget -q "$WAHA_COMPOSE_URL" -O docker/waha/docker-compose.yaml
+#     # Baixa e configura docker-compose
+#     log_info "Configurando Docker Compose..."
+#     WAHA_COMPOSE_URL="https://raw.githubusercontent.com/alanalvestech/newvps/refs/heads/main/configs/waha/docker-compose.yml.template"
+#     wget -q "$WAHA_COMPOSE_URL" -O docker/waha/docker-compose.yaml
 
-    # Baixa e configura env
-    log_info "Configurando variáveis de ambiente..."
-    WAHA_ENV_URL="https://raw.githubusercontent.com/alanalvestech/newvps/refs/heads/main/configs/waha/env.template"
-    wget -q "$WAHA_ENV_URL" -O docker/waha/.env.template
+#     # Baixa e configura env
+#     log_info "Configurando variáveis de ambiente..."
+#     WAHA_ENV_URL="https://raw.githubusercontent.com/alanalvestech/newvps/refs/heads/main/configs/waha/env.template"
+#     wget -q "$WAHA_ENV_URL" -O docker/waha/.env.template
 
-    # Substitui variáveis no arquivo .env
-    sed "s|{{API_KEY}}|$API_KEY|g" docker/waha/.env.template > docker/waha/.env.tmp
-    sed "s|{{ADMIN_PASSWORD}}|$ADMIN_PASS|g" docker/waha/.env.tmp > docker/waha/.env.tmp2
-    sed "s|{{SWAGGER_PASSWORD}}|$SWAGGER_PASS|g" docker/waha/.env.tmp2 > docker/waha/.env
-    rm docker/waha/.env.tmp docker/waha/.env.tmp2
+#     # Substitui variáveis no arquivo .env
+#     sed "s|{{API_KEY}}|$API_KEY|g" docker/waha/.env.template > docker/waha/.env.tmp
+#     sed "s|{{ADMIN_PASSWORD}}|$ADMIN_PASS|g" docker/waha/.env.tmp > docker/waha/.env.tmp2
+#     sed "s|{{SWAGGER_PASSWORD}}|$SWAGGER_PASS|g" docker/waha/.env.tmp2 > docker/waha/.env
+#     rm docker/waha/.env.tmp docker/waha/.env.tmp2
 
-    log_info "Iniciando WAHA..."
-    cd docker/waha
-    docker compose up -d
+#     log_info "Iniciando WAHA..."
+#     cd docker/waha
+#     docker compose up -d
 
-    log_info "Aguardando serviço iniciar..."
-    sleep 10
+#     log_info "Aguardando serviço iniciar..."
+#     sleep 10
 
-    if ! curl -s http://localhost:3000/health > /dev/null; then
-        log_error "Falha na instalação do WAHA"
-        exit 1
-    fi
+#     if ! curl -s http://localhost:3000/health > /dev/null; then
+#         log_error "Falha na instalação do WAHA"
+#         exit 1
+#     fi
 
-    cd ../..
-    log_info "WAHA instalado com sucesso!"
-}
+#     cd ../..
+#     log_info "WAHA instalado com sucesso!"
+# }
 
 ########################################################
 # Finalização
