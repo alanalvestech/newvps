@@ -52,105 +52,105 @@ uninstall() {
         exit 1
     fi
 
-    # Remove Nginx
-    log_info "Removendo Nginx..."
-    
-    # Para todos os processos do Nginx
-    pkill -9 nginx || true
-    
-    # Para e desabilita o serviço
-    systemctl stop nginx || true
-    systemctl disable nginx || true
-    
-    # Remove todos os pacotes relacionados ao Nginx
-    apt-get purge -y nginx nginx-common nginx-full nginx-core || true
-    apt-get autoremove -y --purge nginx* || true
-    
-    # Remove todos os arquivos de configuração
-    rm -rf /etc/nginx
-    rm -rf /var/log/nginx
-    rm -rf /var/www/html
-    rm -rf /usr/share/nginx
-    rm -rf /usr/lib/nginx
-    rm -rf /usr/sbin/nginx
-    rm -rf /etc/init.d/nginx
-    rm -rf /etc/logrotate.d/nginx
-    rm -rf /var/lib/nginx
-    rm -rf /etc/default/nginx
-    rm -rf /etc/letsencrypt
-    
-    # Remove o serviço do systemd
-    rm -rf /lib/systemd/system/nginx.service
-    rm -rf /etc/systemd/system/nginx.service
-    systemctl daemon-reload
-
-    # Para o serviço Docker
-    log_info "Parando serviço Docker..."
-    if systemctl list-unit-files | grep -q docker.service; then
-        systemctl stop docker || true
-        systemctl disable docker || true
-    fi
-
-    # Remove WAHA
-    log_info "Removendo WAHA..."
-    if command -v docker &> /dev/null; then
-        if [ -f docker/waha/docker-compose.yaml ]; then
-            docker compose -f docker/waha/docker-compose.yaml down -v || true
-        fi
-    fi
-
-    # Para todos os containers
-    if command -v docker &> /dev/null; then
-        docker stop $(docker ps -aq) 2>/dev/null || true
-        docker rm $(docker ps -aq) 2>/dev/null || true
-        docker network prune -f 2>/dev/null || true
-        docker volume prune -f 2>/dev/null || true
-        docker system prune -af 2>/dev/null || true
-    fi
-
-    # Remove diretório do projeto
-    log_info "Removendo arquivos do projeto..."
-    rm -rf "$(pwd)/docker"
-
-    # Força kill de processos Docker remanescentes
-    log_info "Removendo Docker..."
-    pkill -9 -f docker || true
-    sleep 2
-
-    # Remove pacotes Docker
-    for pkg in docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin; do
-        if dpkg -l | grep -q "^ii.*$pkg"; then
-            apt-get remove --purge -y "$pkg" || true
-        fi
-    done
-
-    # Remove diretórios Docker com força
-    systemctl stop docker.socket || true
-    systemctl stop docker.service || true
-    rm -rf /var/run/docker.sock
-    rm -rf /var/lib/docker
-    rm -rf /etc/docker
-    rm -rf /etc/apt/keyrings/docker.gpg
-    rm -f /etc/apt/sources.list.d/docker.list
-
     # Remove Git if installed
     log_info "Removendo Git..."
     if dpkg -l | grep -q "^ii.*git"; then
         apt-get remove --purge -y git || true
-    fi
+    fi    
 
-    # Remove Python and FastAPI
-    log_info "Removendo Python e FastAPI..."
-    if [ -d "/opt/app" ]; then
-        rm -rf /opt/app
-    fi
+    # # Remove Nginx
+    # log_info "Removendo Nginx..."
     
-    # Remove Python packages if they exist
-    for pkg in python3-pip python3-venv python3; do
-        if dpkg -l | grep -q "^ii.*$pkg"; then
-            apt-get remove --purge -y "$pkg" || true
-        fi
-    done
+    # # Para todos os processos do Nginx
+    # pkill -9 nginx || true
+    
+    # # Para e desabilita o serviço
+    # systemctl stop nginx || true
+    # systemctl disable nginx || true
+    
+    # # Remove todos os pacotes relacionados ao Nginx
+    # apt-get purge -y nginx nginx-common nginx-full nginx-core || true
+    # apt-get autoremove -y --purge nginx* || true
+    
+    # # Remove todos os arquivos de configuração
+    # rm -rf /etc/nginx
+    # rm -rf /var/log/nginx
+    # rm -rf /var/www/html
+    # rm -rf /usr/share/nginx
+    # rm -rf /usr/lib/nginx
+    # rm -rf /usr/sbin/nginx
+    # rm -rf /etc/init.d/nginx
+    # rm -rf /etc/logrotate.d/nginx
+    # rm -rf /var/lib/nginx
+    # rm -rf /etc/default/nginx
+    # rm -rf /etc/letsencrypt
+    
+    # # Remove o serviço do systemd
+    # rm -rf /lib/systemd/system/nginx.service
+    # rm -rf /etc/systemd/system/nginx.service
+    # systemctl daemon-reload
+
+    # # Para o serviço Docker
+    # log_info "Parando serviço Docker..."
+    # if systemctl list-unit-files | grep -q docker.service; then
+    #     systemctl stop docker || true
+    #     systemctl disable docker || true
+    # fi
+
+    # # Remove WAHA
+    # log_info "Removendo WAHA..."
+    # if command -v docker &> /dev/null; then
+    #     if [ -f docker/waha/docker-compose.yaml ]; then
+    #         docker compose -f docker/waha/docker-compose.yaml down -v || true
+    #     fi
+    # fi
+
+    # # Para todos os containers
+    # if command -v docker &> /dev/null; then
+    #     docker stop $(docker ps -aq) 2>/dev/null || true
+    #     docker rm $(docker ps -aq) 2>/dev/null || true
+    #     docker network prune -f 2>/dev/null || true
+    #     docker volume prune -f 2>/dev/null || true
+    #     docker system prune -af 2>/dev/null || true
+    # fi
+
+    # # Remove diretório do projeto
+    # log_info "Removendo arquivos do projeto..."
+    # rm -rf "$(pwd)/docker"
+
+    # # Força kill de processos Docker remanescentes
+    # log_info "Removendo Docker..."
+    # pkill -9 -f docker || true
+    # sleep 2
+
+    # # Remove pacotes Docker
+    # for pkg in docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin; do
+    #     if dpkg -l | grep -q "^ii.*$pkg"; then
+    #         apt-get remove --purge -y "$pkg" || true
+    #     fi
+    # done
+
+    # # Remove diretórios Docker com força
+    # systemctl stop docker.socket || true
+    # systemctl stop docker.service || true
+    # rm -rf /var/run/docker.sock
+    # rm -rf /var/lib/docker
+    # rm -rf /etc/docker
+    # rm -rf /etc/apt/keyrings/docker.gpg
+    # rm -f /etc/apt/sources.list.d/docker.list
+
+    # # Remove Python and FastAPI
+    # log_info "Removendo Python e FastAPI..."
+    # if [ -d "/opt/app" ]; then
+    #     rm -rf /opt/app
+    # fi
+    
+    # # Remove Python packages if they exist
+    # for pkg in python3-pip python3-venv python3; do
+    #     if dpkg -l | grep -q "^ii.*$pkg"; then
+    #         apt-get remove --purge -y "$pkg" || true
+    #     fi
+    # done
 
     # Clean unused packages
     log_info "Limpando pacotes não utilizados..."
