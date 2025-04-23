@@ -248,13 +248,13 @@ wait_for_apt() {
 {
     # Configura diretório do site
     log_info "Configurando diretório do site..."
-    mkdir -p /root/site
-    chown -R www-data:www-data /root/site
-    chmod -R 755 /root/site
+    mkdir -p /var/www/site
+    chown -R www-data:www-data /var/www/site
+    chmod -R 755 /var/www/site
 
     # Verifica permissões
-    if [ ! -r "/root/site" ] || [ ! -x "/root/site" ]; then
-        log_error "Erro: diretório /root/site não tem permissões corretas"
+    if [ ! -r "/var/www/site" ] || [ ! -x "/var/www/site" ]; then
+        log_error "Erro: diretório /var/www/site não tem permissões corretas"
         exit 1
     fi
 
@@ -270,9 +270,6 @@ wait_for_apt() {
     # Configura Nginx
     log_info "Configurando Nginx..."
     
-    # Cria diretório de templates se não existir
-    mkdir -p /opt/newvps/templates
-
     # Baixa template atualizado
     log_info "Baixando template do Nginx..."
     NGINX_TEMPLATE_URL="https://raw.githubusercontent.com/alanalvestech/newvps/refs/heads/main/configs/nginx/site.conf.template"
@@ -304,33 +301,6 @@ wait_for_apt() {
     # Reinicia Nginx
     log_info "Reiniciando Nginx..."
     systemctl restart nginx
-
-    # Aguarda inicialização
-    sleep 2
-
-    # Verifica status
-    if ! systemctl is-active --quiet nginx; then
-        log_error "Nginx não está rodando"
-        log_info "Últimas linhas do log de erro:"
-        tail -n 20 /var/log/nginx/error.log
-        log_info "Log específico do domínio:"
-        tail -n 20 "/var/log/nginx/${DOMAIN}.error.log"
-        exit 1
-    fi
-
-    # Testa conexão
-    log_info "Testando conexão..."
-    if ! curl -s -I "http://${DOMAIN}" > /dev/null; then
-        log_error "Não foi possível conectar ao site"
-        log_info "Verifique se a porta 80 está aberta e acessível"
-        exit 1
-    fi
-
-    log_info "✓ Nginx configurado e rodando"
-    log_info "✓ Site acessível em: http://${DOMAIN}"
-    log_info "✓ Logs disponíveis em:"
-    log_info "  - /var/log/nginx/${DOMAIN}.access.log"
-    log_info "  - /var/log/nginx/${DOMAIN}.error.log"
 }
 
 ########################################################
