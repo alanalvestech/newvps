@@ -420,30 +420,30 @@ uninstall() {
         echo "0 0 1 * * root tar -czf /root/letsencrypt-backup-\$(date +\%Y\%m).tar.gz /etc/letsencrypt/" > /etc/cron.d/ssl-backup
     fi
     
-    # Verifica se já existem certificados válidos
+    # Verifica certificados existentes
     if [ -d "/etc/letsencrypt/live/$DOMAIN" ] && [ -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ] && [ -f "/etc/letsencrypt/live/$DOMAIN/privkey.pem" ]; then
-        log_info "Certificados Let's Encrypt já existem"
+        log_info "Usando certificados Let's Encrypt existentes"
         SSL_CERT="/etc/letsencrypt/live/$DOMAIN/fullchain.pem"
         SSL_KEY="/etc/letsencrypt/live/$DOMAIN/privkey.pem"
+    elif [ -f "/etc/nginx/ssl/nginx.crt" ] && [ -f "/etc/nginx/ssl/nginx.key" ]; then
+        log_info "Usando certificado auto-assinado existente"
+        SSL_CERT="/etc/nginx/ssl/nginx.crt"
+        SSL_KEY="/etc/nginx/ssl/nginx.key"
     else
-        # Tenta gerar certificados Let's Encrypt
-        log_info "Tentando obter certificados Let's Encrypt..."
+        # Tenta gerar certificados Let's Encrypt primeiro
+        log_info "Tentando obter novos certificados Let's Encrypt..."
         if certbot certonly --standalone -d "$DOMAIN" -d "agent.$DOMAIN" -d "waha.$DOMAIN" --non-interactive --agree-tos -m "$EMAIL"; then
             log_info "Certificados Let's Encrypt obtidos com sucesso!"
             SSL_CERT="/etc/letsencrypt/live/$DOMAIN/fullchain.pem"
             SSL_KEY="/etc/letsencrypt/live/$DOMAIN/privkey.pem"
         else
-            # Verifica se já existe certificado auto-assinado
-            if [ -f "/etc/nginx/ssl/nginx.crt" ] && [ -f "/etc/nginx/ssl/nginx.key" ]; then
-                log_info "Certificado auto-assinado já existe"
-            else
-                log_warn "Não foi possível obter certificados Let's Encrypt. Gerando certificado auto-assinado..."
-                mkdir -p /etc/nginx/ssl
-                openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-                    -keyout /etc/nginx/ssl/nginx.key \
-                    -out /etc/nginx/ssl/nginx.crt \
-                    -subj "/CN=$DOMAIN"
-            fi
+            # Se falhar, gera certificado auto-assinado
+            log_warn "Não foi possível obter certificados Let's Encrypt. Gerando certificado auto-assinado..."
+            mkdir -p /etc/nginx/ssl
+            openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+                -keyout /etc/nginx/ssl/nginx.key \
+                -out /etc/nginx/ssl/nginx.crt \
+                -subj "/CN=$DOMAIN"
             SSL_CERT="/etc/nginx/ssl/nginx.crt"
             SSL_KEY="/etc/nginx/ssl/nginx.key"
         fi
