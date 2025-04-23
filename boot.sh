@@ -342,22 +342,54 @@ uninstall() {
 # Instalar Python e FastAPI
 ########################################################
 {
-    log_info "Instalando Python e FastAPI..."
-    wait_for_apt
-    apt-get install -y python3 python3-pip python3-venv
+    # Verifica se Python já está instalado
+    if ! command -v python3 &> /dev/null; then
+        log_info "Instalando Python..."
+        wait_for_apt
+        apt-get install -y python3 python3-pip python3-venv || {
+            log_error "Falha ao instalar Python"
+            exit 1
+        }
+        log_info "Python instalado com sucesso!"
+    else
+        log_info "Python já está instalado"
+        log_info "Versão: $(python3 --version)"
+    fi
 
-    python3 -m venv /opt/app
+    # Verifica se já existe ambiente virtual
+    if [ ! -d "/opt/app" ]; then
+        log_info "Criando ambiente virtual..."
+        python3 -m venv /opt/app || {
+            log_error "Falha ao criar ambiente virtual"
+            exit 1
+        }
+    else
+        log_info "Ambiente virtual já existe"
+    fi
+
+    # Ativa ambiente virtual
     source /opt/app/bin/activate
 
-    pip install fastapi uvicorn python-dotenv
+    # Verifica se FastAPI já está instalado
+    if ! pip show fastapi &> /dev/null; then
+        log_info "Instalando FastAPI..."
+        pip install fastapi uvicorn python-dotenv || {
+            log_error "Falha ao instalar FastAPI"
+            exit 1
+        }
+        log_info "FastAPI instalado com sucesso!"
+    else
+        log_info "FastAPI já está instalado"
+    fi
 
+    # Verifica se instalação foi bem sucedida
     if ! command -v uvicorn &> /dev/null; then
         log_error "Falha na instalação do FastAPI"
         exit 1
     fi
 
-    log_info "FastAPI instalado com sucesso!"
-    log_info "Versão: $(pip show fastapi | grep Version)"
+    log_info "Versão FastAPI: $(pip show fastapi | grep Version)"
+    log_info "Versão Uvicorn: $(pip show uvicorn | grep Version)"
 }
 
 ########################################################
