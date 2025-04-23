@@ -477,3 +477,4 @@ uninstall() {
 # Finalização
 ########################################################
 log_info "Instalação concluída!"
+
