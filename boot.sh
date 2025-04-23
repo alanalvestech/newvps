@@ -223,13 +223,13 @@ uninstall() {
 ########################################################
 # Atualizar sistema
 ########################################################
-{
+# {
     # log_info "Atualizando sistema..."
     # wait_for_apt
     # apt-get update
     # wait_for_apt
     # apt-get upgrade -y
-}
+# }
 
 ########################################################
 # Instalar Git
