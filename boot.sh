@@ -378,11 +378,9 @@ uninstall() {
     wait_for_apt
     apt-get install -y nginx
     
-    # Cria diretórios necessários
-    log_info "Criando diretórios..."
+    # Cria diretório SSL
+    log_info "Criando diretório SSL..."
     mkdir -p /etc/nginx/ssl
-    mkdir -p /root/site
-    mkdir -p /root/app
     
     # Gera parâmetros DH fortes
     log_info "Gerando parâmetros DH..."
