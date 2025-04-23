@@ -391,10 +391,6 @@ uninstall() {
         SSL_CERT="/etc/nginx/ssl/nginx.crt"
         SSL_KEY="/etc/nginx/ssl/nginx.key"
     fi
-
-    # Atualiza template do Nginx com os certificados corretos
-    sed -i "s|ssl_certificate .*|ssl_certificate $SSL_CERT;|" /etc/nginx/sites-available/app
-    sed -i "s|ssl_certificate_key .*|ssl_certificate_key $SSL_KEY;|" /etc/nginx/sites-available/app
 }
 
 ########################################################
@@ -427,6 +423,11 @@ uninstall() {
     # Configura Nginx
     log_info "Configurando Nginx..."
     sed "s/{{DOMAIN}}/${DOMAIN}/g" /opt/newvps/templates/nginx.conf.template > /etc/nginx/sites-available/app
+
+    # Atualiza caminhos dos certificados SSL
+    log_info "Atualizando configuração SSL..."
+    sed -i "s|ssl_certificate .*|ssl_certificate $SSL_CERT;|" /etc/nginx/sites-available/app
+    sed -i "s|ssl_certificate_key .*|ssl_certificate_key $SSL_KEY;|" /etc/nginx/sites-available/app
 
     ln -sf /etc/nginx/sites-available/app /etc/nginx/sites-enabled/
     rm -f /etc/nginx/sites-enabled/default
