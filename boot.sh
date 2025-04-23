@@ -353,7 +353,7 @@ uninstall() {
 # Instalar e Configurar SSL
 ########################################################
 {
-    log_info "Instalando Certbot..."
+    log_info "Configurando SSL..."
     wait_for_apt
     apt-get install -y certbot
 
@@ -365,9 +365,13 @@ uninstall() {
     log_info "Configurando backup dos certificados..."
     echo "0 0 1 * * root tar -czf /root/letsencrypt-backup-\$(date +\%Y\%m).tar.gz /etc/letsencrypt/" > /etc/cron.d/ssl-backup
     
-    # Obtém certificados SSL standalone para todos domínios
-    log_info "Obtendo certificados..."
-    certbot certonly --standalone -d "$DOMAIN" -d "agent.$DOMAIN" -d "waha.$DOMAIN" --non-interactive --agree-tos -m "$EMAIL"
+    # Verifica se já existem certificados
+    if [ ! -d "/etc/letsencrypt/live/$DOMAIN" ]; then
+        log_info "Obtendo novos certificados..."
+        certbot certonly --standalone -d "$DOMAIN" -d "agent.$DOMAIN" -d "waha.$DOMAIN" --non-interactive --agree-tos -m "$EMAIL"
+    else
+        log_info "Certificados existentes encontrados, pulando geração..."
+    fi
 }
 
 ########################################################
@@ -381,6 +385,12 @@ uninstall() {
     # Cria diretório SSL
     log_info "Criando diretório SSL..."
     mkdir -p /etc/nginx/ssl
+    
+    # Configura diretório do site
+    log_info "Configurando diretório do site..."
+    mkdir -p /root/site
+    chown -R root:root /root/site
+    chmod -R 755 /root/site
     
     # Gera parâmetros DH fortes
     log_info "Gerando parâmetros DH..."
