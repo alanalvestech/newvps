@@ -148,9 +148,9 @@ uninstall() {
     # rm -f /etc/apt/sources.list.d/docker.list
 
     # Clean unused packages
-    log_info "Limpando pacotes não utilizados..."
-    apt-get autoremove --purge -y || true
-    apt-get clean
+    # log_info "Limpando pacotes não utilizados..."
+    # apt-get autoremove --purge -y || true
+    # apt-get clean
 
     # Remove script de instalação
     rm -f boot.sh
@@ -224,11 +224,11 @@ uninstall() {
 # Atualizar sistema
 ########################################################
 {
-    log_info "Atualizando sistema..."
-    wait_for_apt
-    apt-get update
-    wait_for_apt
-    apt-get upgrade -y
+    # log_info "Atualizando sistema..."
+    # wait_for_apt
+    # apt-get update
+    # wait_for_apt
+    # apt-get upgrade -y
 }
 
 ########################################################
@@ -271,17 +271,17 @@ uninstall() {
         log_info "Versão: $(python3 --version)"
     fi
 
-    # # Verifica se FastAPI já está instalado
-    # if ! pip show fastapi &> /dev/null; then
-    #     log_info "Instalando FastAPI..."
-    #     pip install fastapi uvicorn python-dotenv || {
-    #         log_error "Falha ao instalar FastAPI"
-    #         exit 1
-    #     }
-    #     log_info "FastAPI instalado com sucesso!"
-    # else
-    #     log_info "FastAPI já está instalado"
-    # fi
+    # Verifica se FastAPI já está instalado
+    if ! pip show fastapi &> /dev/null; then
+        log_info "Instalando FastAPI..."
+        pip install fastapi uvicorn python-dotenv || {
+            log_error "Falha ao instalar FastAPI"
+            exit 1
+        }
+        log_info "FastAPI instalado com sucesso!"
+    else
+        log_info "FastAPI já está instalado"
+    fi
 
     # # Verifica se instalação foi bem sucedida
     # if ! command -v uvicorn &> /dev/null; then
@@ -289,7 +289,7 @@ uninstall() {
     #     exit 1
     # fi
 
-    log_info "Versão FastAPI: $(pip show fastapi | grep Version)"
+    # log_info "Versão FastAPI: $(pip show fastapi | grep Version)"
     # log_info "Versão Uvicorn: $(pip show uvicorn | grep Version)"
 }
 
