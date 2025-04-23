@@ -198,6 +198,87 @@ wait_for_apt() {
 }
 
 ########################################################
+# Instalar e Configurar SSL
+########################################################
+{
+    # # Verifica se certbot já está instalado
+    # if ! command -v certbot &> /dev/null; then
+    #     log_info "Instalando Certbot..."
+    #     wait_for_apt
+    #     apt-get install -y certbot || {
+    #         log_error "Falha ao instalar Certbot"
+    #         exit 1
+    #     }
+    # else
+    #     log_info "Certbot já está instalado"
+    # fi
+
+    # # Tenta gerar certificados Let's Encrypt primeiro
+    # log_info "Tentando obter novos certificados Let's Encrypt..."
+    # if certbot certonly --standalone -d "$DOMAIN" -d "agent.$DOMAIN" -d "waha.$DOMAIN" --non-interactive --agree-tos -m "$EMAIL"; then
+    #     log_info "Certificados Let's Encrypt obtidos com sucesso!"
+    #     SSL_CERT="/etc/letsencrypt/live/$DOMAIN/fullchain.pem"
+    #     SSL_KEY="/etc/letsencrypt/live/$DOMAIN/privkey.pem"
+
+    #     # Configura renovação automática
+    #     log_info "Configurando renovação automática..."
+    #     echo "0 0,12 * * * root python3 -c 'import random; import time; time.sleep(random.random() * 3600)' && certbot renew -q" > /etc/cron.d/certbot
+        
+    #     # Configura backup dos certificados
+    #     log_info "Configurando backup dos certificados..."
+    #     echo "0 0 1 * * root tar -czf /root/letsencrypt-backup-\$(date +\%Y\%m).tar.gz /etc/letsencrypt/" > /etc/cron.d/ssl-backup
+    # else
+        # Se falhar, gera certificado auto-assinado
+    log_warn "Não foi possível obter certificados Let's Encrypt. Gerando certificado auto-assinado..."
+    mkdir -p /etc/nginx/ssl
+    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+        -keyout /etc/nginx/ssl/nginx.key \
+        -out /etc/nginx/ssl/nginx.crt \
+        -subj "/CN=$DOMAIN"
+    SSL_CERT="/etc/nginx/ssl/nginx.crt"
+    SSL_KEY="/etc/nginx/ssl/nginx.key"
+    # fi
+
+    log_info "✓ Certificado SSL configurado: $SSL_CERT"
+}
+
+# ########################################################
+# # Configurar Nginx
+# ########################################################
+# {
+#     # Configura diretório do site
+#     log_info "Configurando diretório do site..."
+#     mkdir -p /root/site
+#     chown -R root:root /root/site
+#     chmod -R 755 /root/site
+    
+#     # Gera parâmetros DH fortes
+#     log_info "Gerando parâmetros DH..."
+#     openssl dhparam -out /etc/nginx/ssl/dhparam.pem 2048
+
+#     # Baixa template do Nginx
+#     log_info "Baixando template do Nginx..."
+#     NGINX_TEMPLATE_URL="https://raw.githubusercontent.com/alanalvestech/newvps/refs/heads/main/configs/nginx/app.conf.template"
+#     wget -q "$NGINX_TEMPLATE_URL" -O /opt/newvps/templates/nginx.conf.template
+    
+#     # Configura Nginx
+#     log_info "Configurando Nginx..."
+#     sed "s/{{DOMAIN}}/${DOMAIN}/g" /opt/newvps/templates/nginx.conf.template > /etc/nginx/sites-available/app
+
+#     # Atualiza caminhos dos certificados SSL
+#     log_info "Atualizando configuração SSL..."
+#     sed -i "s|ssl_certificate .*|ssl_certificate $SSL_CERT;|" /etc/nginx/sites-available/app
+#     sed -i "s|ssl_certificate_key .*|ssl_certificate_key $SSL_KEY;|" /etc/nginx/sites-available/app
+
+#     ln -sf /etc/nginx/sites-available/app /etc/nginx/sites-enabled/
+#     rm -f /etc/nginx/sites-enabled/default
+
+#     # Testa e reinicia Nginx
+#     log_info "Testando configuração do Nginx..."
+#     nginx -t && systemctl restart nginx
+# }
+
+########################################################
 # Instalar Python e FastAPI
 ########################################################
 # {
@@ -311,102 +392,7 @@ wait_for_apt() {
 #     log_info "Compose: $(docker compose version)"
 # }
 
-########################################################
-# Instalar e Configurar SSL
-########################################################
-# {
-#     # Verifica se certbot já está instalado
-#     if ! command -v certbot &> /dev/null; then
-#         log_info "Instalando Certbot..."
-#         wait_for_apt
-#         apt-get install -y certbot || {
-#             log_error "Falha ao instalar Certbot"
-#             exit 1
-#         }
-#     else
-#         log_info "Certbot já está instalado"
-#     fi
 
-#     # Configura renovação automática se não existir
-#     if [ ! -f /etc/cron.d/certbot ]; then
-#         log_info "Configurando renovação automática..."
-#         echo "0 0,12 * * * root python3 -c 'import random; import time; time.sleep(random.random() * 3600)' && certbot renew -q" > /etc/cron.d/certbot
-#     fi
-    
-#     # Configura backup dos certificados se não existir
-#     if [ ! -f /etc/cron.d/ssl-backup ]; then
-#         log_info "Configurando backup dos certificados..."
-#         echo "0 0 1 * * root tar -czf /root/letsencrypt-backup-\$(date +\%Y\%m).tar.gz /etc/letsencrypt/" > /etc/cron.d/ssl-backup
-#     fi
-    
-#     # Verifica certificados existentes
-#     if [ -d "/etc/letsencrypt/live/$DOMAIN" ] && [ -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ] && [ -f "/etc/letsencrypt/live/$DOMAIN/privkey.pem" ]; then
-#         log_info "Usando certificados Let's Encrypt existentes"
-#         SSL_CERT="/etc/letsencrypt/live/$DOMAIN/fullchain.pem"
-#         SSL_KEY="/etc/letsencrypt/live/$DOMAIN/privkey.pem"
-#     elif [ -f "/etc/nginx/ssl/nginx.crt" ] && [ -f "/etc/nginx/ssl/nginx.key" ]; then
-#         log_info "Usando certificado auto-assinado existente"
-#         SSL_CERT="/etc/nginx/ssl/nginx.crt"
-#         SSL_KEY="/etc/nginx/ssl/nginx.key"
-#     else
-#         # Tenta gerar certificados Let's Encrypt primeiro
-#         log_info "Tentando obter novos certificados Let's Encrypt..."
-#         if certbot certonly --standalone -d "$DOMAIN" -d "agent.$DOMAIN" -d "waha.$DOMAIN" --non-interactive --agree-tos -m "$EMAIL"; then
-#             log_info "Certificados Let's Encrypt obtidos com sucesso!"
-#             SSL_CERT="/etc/letsencrypt/live/$DOMAIN/fullchain.pem"
-#             SSL_KEY="/etc/letsencrypt/live/$DOMAIN/privkey.pem"
-#         else
-#             # Se falhar, gera certificado auto-assinado
-#             log_warn "Não foi possível obter certificados Let's Encrypt. Gerando certificado auto-assinado..."
-#             mkdir -p /etc/nginx/ssl
-#             openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-#                 -keyout /etc/nginx/ssl/nginx.key \
-#                 -out /etc/nginx/ssl/nginx.crt \
-#                 -subj "/CN=$DOMAIN"
-#             SSL_CERT="/etc/nginx/ssl/nginx.crt"
-#             SSL_KEY="/etc/nginx/ssl/nginx.key"
-#         fi
-#     fi
-
-#     log_info "✓ Certificado SSL configurado: $SSL_CERT"
-# }
-
-
-# ########################################################
-# # Configurar Nginx
-# ########################################################
-# {
-#     # Configura diretório do site
-#     log_info "Configurando diretório do site..."
-#     mkdir -p /root/site
-#     chown -R root:root /root/site
-#     chmod -R 755 /root/site
-    
-#     # Gera parâmetros DH fortes
-#     log_info "Gerando parâmetros DH..."
-#     openssl dhparam -out /etc/nginx/ssl/dhparam.pem 2048
-
-#     # Baixa template do Nginx
-#     log_info "Baixando template do Nginx..."
-#     NGINX_TEMPLATE_URL="https://raw.githubusercontent.com/alanalvestech/newvps/refs/heads/main/configs/nginx/app.conf.template"
-#     wget -q "$NGINX_TEMPLATE_URL" -O /opt/newvps/templates/nginx.conf.template
-    
-#     # Configura Nginx
-#     log_info "Configurando Nginx..."
-#     sed "s/{{DOMAIN}}/${DOMAIN}/g" /opt/newvps/templates/nginx.conf.template > /etc/nginx/sites-available/app
-
-#     # Atualiza caminhos dos certificados SSL
-#     log_info "Atualizando configuração SSL..."
-#     sed -i "s|ssl_certificate .*|ssl_certificate $SSL_CERT;|" /etc/nginx/sites-available/app
-#     sed -i "s|ssl_certificate_key .*|ssl_certificate_key $SSL_KEY;|" /etc/nginx/sites-available/app
-
-#     ln -sf /etc/nginx/sites-available/app /etc/nginx/sites-enabled/
-#     rm -f /etc/nginx/sites-enabled/default
-
-#     # Testa e reinicia Nginx
-#     log_info "Testando configuração do Nginx..."
-#     nginx -t && systemctl restart nginx
-# }
 
 ########################################################
 # Instalar WAHA
