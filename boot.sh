@@ -367,27 +367,17 @@ uninstall() {
     log_info "Gerando parâmetros DH..."
     openssl dhparam -out /etc/nginx/ssl/dhparam.pem 2048
 
-    # Baixa e configura template do Nginx
-    log_info "Baixando template do Nginx..."
+    # Baixa templates do Nginx
+    log_info "Baixando templates do Nginx..."
     NGINX_TEMPLATE_URL="https://raw.githubusercontent.com/alanalvestech/newvps/refs/heads/main/configs/nginx/app.conf.template"
+    NGINX_INITIAL_URL="https://raw.githubusercontent.com/alanalvestech/newvps/refs/heads/main/configs/nginx/initial.conf.template"
+    
     wget -q "$NGINX_TEMPLATE_URL" -O /opt/newvps/templates/nginx.conf.template
+    wget -q "$NGINX_INITIAL_URL" -O /opt/newvps/templates/nginx.initial.template
     
     # Configura Nginx apenas com HTTP inicialmente
     log_info "Configurando Nginx..."
-    cat > /etc/nginx/sites-available/app << EOF
-server {
-    listen 80;
-    listen [::]:80;
-    server_name ${DOMAIN};
-    
-    root /var/www/html;
-    index index.html;
-    
-    location / {
-        try_files \$uri \$uri/ =404;
-    }
-}
-EOF
+    sed "s/{{DOMAIN}}/${DOMAIN}/g" /opt/newvps/templates/nginx.initial.template > /etc/nginx/sites-available/app
 
     ln -sf /etc/nginx/sites-available/app /etc/nginx/sites-enabled/
     rm -f /etc/nginx/sites-enabled/default
