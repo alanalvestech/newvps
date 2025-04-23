@@ -261,236 +261,236 @@ uninstall() {
 ########################################################
 # Instalar Docker
 ########################################################
-{
-    # Verifica se Docker já está instalado
-    if ! command -v docker &> /dev/null; then
-        log_info "Instalando Docker..."
+# {
+#     # Verifica se Docker já está instalado
+#     if ! command -v docker &> /dev/null; then
+#         log_info "Instalando Docker..."
 
-        log_info "Instalando dependências..."
-        apt-get install -y ca-certificates curl gnupg || {
-            log_error "Falha ao instalar dependências"
-            exit 1
-        }
+#         log_info "Instalando dependências..."
+#         apt-get install -y ca-certificates curl gnupg || {
+#             log_error "Falha ao instalar dependências"
+#             exit 1
+#         }
 
-        log_info "Configurando diretório..."
-        install -m 0755 -d /etc/apt/keyrings || {
-            log_error "Falha ao criar diretório keyrings"
-            exit 1
-        }
+#         log_info "Configurando diretório..."
+#         install -m 0755 -d /etc/apt/keyrings || {
+#             log_error "Falha ao criar diretório keyrings"
+#             exit 1
+#         }
 
-        log_info "Removendo GPG antigo..."
-        rm -f /etc/apt/keyrings/docker.gpg
+#         log_info "Removendo GPG antigo..."
+#         rm -f /etc/apt/keyrings/docker.gpg
 
-        log_info "Baixando chave GPG..."
-        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg || {
-            log_error "Falha ao baixar/configurar chave GPG"
-            exit 1
-        }
-        chmod a+r /etc/apt/keyrings/docker.gpg
+#         log_info "Baixando chave GPG..."
+#         curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg || {
+#             log_error "Falha ao baixar/configurar chave GPG"
+#             exit 1
+#         }
+#         chmod a+r /etc/apt/keyrings/docker.gpg
 
-        log_info "Detectando distribuição..."
-        if [ -f /etc/os-release ]; then
-            . /etc/os-release
-            OS=$ID
-            VERSION_CODENAME=$VERSION_CODENAME
-        else
-            OS="ubuntu"
-            VERSION_CODENAME="jammy"
-        fi
-        log_info "Sistema detectado: $OS $VERSION_CODENAME"
+#         log_info "Detectando distribuição..."
+#         if [ -f /etc/os-release ]; then
+#             . /etc/os-release
+#             OS=$ID
+#             VERSION_CODENAME=$VERSION_CODENAME
+#         else
+#             OS="ubuntu"
+#             VERSION_CODENAME="jammy"
+#         fi
+#         log_info "Sistema detectado: $OS $VERSION_CODENAME"
 
-        log_info "Configurando repositório..."
-        echo \
-          "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/$OS \
-          $VERSION_CODENAME stable" | \
-          tee /etc/apt/sources.list.d/docker.list > /dev/null
+#         log_info "Configurando repositório..."
+#         echo \
+#           "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/$OS \
+#           $VERSION_CODENAME stable" | \
+#           tee /etc/apt/sources.list.d/docker.list > /dev/null
 
-        log_info "Atualizando repositórios..."
-        apt-get update || {
-            log_error "Falha ao atualizar repositórios"
-            exit 1
-        }
+#         log_info "Atualizando repositórios..."
+#         apt-get update || {
+#             log_error "Falha ao atualizar repositórios"
+#             exit 1
+#         }
 
-        log_info "Instalando pacotes Docker..."
-        apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin || {
-            log_error "Falha ao instalar pacotes Docker"
-            exit 1
-        }
+#         log_info "Instalando pacotes Docker..."
+#         apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin || {
+#             log_error "Falha ao instalar pacotes Docker"
+#             exit 1
+#         }
 
-        log_info "Iniciando serviço Docker..."
-        systemctl start docker || {
-            log_error "Falha ao iniciar Docker"
-            exit 1
-        }
-        systemctl enable docker
+#         log_info "Iniciando serviço Docker..."
+#         systemctl start docker || {
+#             log_error "Falha ao iniciar Docker"
+#             exit 1
+#         }
+#         systemctl enable docker
 
-        if ! command -v docker &> /dev/null; then
-            log_error "Falha na instalação do Docker"
-            exit 1
-        fi
+#         if ! command -v docker &> /dev/null; then
+#             log_error "Falha na instalação do Docker"
+#             exit 1
+#         fi
 
-        log_info "Docker instalado com sucesso!"
-    else
-        log_info "Docker já está instalado"
-    fi
+#         log_info "Docker instalado com sucesso!"
+#     else
+#         log_info "Docker já está instalado"
+#     fi
 
-    log_info "Versão: $(docker --version)"
-    log_info "Compose: $(docker compose version)"
-}
+#     log_info "Versão: $(docker --version)"
+#     log_info "Compose: $(docker compose version)"
+# }
 
 ########################################################
 # Instalar Python e FastAPI
 ########################################################
-{
-    # Verifica se Python já está instalado
-    if ! command -v python3 &> /dev/null; then
-        log_info "Instalando Python..."
-        wait_for_apt
-        apt-get install -y python3 python3-pip python3-venv || {
-            log_error "Falha ao instalar Python"
-            exit 1
-        }
-        log_info "Python instalado com sucesso!"
-    else
-        log_info "Python já está instalado"
-        log_info "Versão: $(python3 --version)"
-    fi
+# {
+#     # Verifica se Python já está instalado
+#     if ! command -v python3 &> /dev/null; then
+#         log_info "Instalando Python..."
+#         wait_for_apt
+#         apt-get install -y python3 python3-pip python3-venv || {
+#             log_error "Falha ao instalar Python"
+#             exit 1
+#         }
+#         log_info "Python instalado com sucesso!"
+#     else
+#         log_info "Python já está instalado"
+#         log_info "Versão: $(python3 --version)"
+#     fi
 
-    # Verifica se já existe ambiente virtual
-    if [ ! -d "/opt/app" ]; then
-        log_info "Criando ambiente virtual..."
-        python3 -m venv /opt/app || {
-            log_error "Falha ao criar ambiente virtual"
-            exit 1
-        }
-    else
-        log_info "Ambiente virtual já existe"
-    fi
+#     # Verifica se já existe ambiente virtual
+#     if [ ! -d "/opt/app" ]; then
+#         log_info "Criando ambiente virtual..."
+#         python3 -m venv /opt/app || {
+#             log_error "Falha ao criar ambiente virtual"
+#             exit 1
+#         }
+#     else
+#         log_info "Ambiente virtual já existe"
+#     fi
 
-    # Ativa ambiente virtual
-    source /opt/app/bin/activate
+#     # Ativa ambiente virtual
+#     source /opt/app/bin/activate
 
-    # Verifica se FastAPI já está instalado
-    if ! pip show fastapi &> /dev/null; then
-        log_info "Instalando FastAPI..."
-        pip install fastapi uvicorn python-dotenv || {
-            log_error "Falha ao instalar FastAPI"
-            exit 1
-        }
-        log_info "FastAPI instalado com sucesso!"
-    else
-        log_info "FastAPI já está instalado"
-    fi
+#     # Verifica se FastAPI já está instalado
+#     if ! pip show fastapi &> /dev/null; then
+#         log_info "Instalando FastAPI..."
+#         pip install fastapi uvicorn python-dotenv || {
+#             log_error "Falha ao instalar FastAPI"
+#             exit 1
+#         }
+#         log_info "FastAPI instalado com sucesso!"
+#     else
+#         log_info "FastAPI já está instalado"
+#     fi
 
-    # Verifica se instalação foi bem sucedida
-    if ! command -v uvicorn &> /dev/null; then
-        log_error "Falha na instalação do FastAPI"
-        exit 1
-    fi
+#     # Verifica se instalação foi bem sucedida
+#     if ! command -v uvicorn &> /dev/null; then
+#         log_error "Falha na instalação do FastAPI"
+#         exit 1
+#     fi
 
-    log_info "Versão FastAPI: $(pip show fastapi | grep Version)"
-    log_info "Versão Uvicorn: $(pip show uvicorn | grep Version)"
-}
+#     log_info "Versão FastAPI: $(pip show fastapi | grep Version)"
+#     log_info "Versão Uvicorn: $(pip show uvicorn | grep Version)"
+# }
 
 ########################################################
 # Instalar e Configurar SSL
 ########################################################
-{
-    # Verifica se certbot já está instalado
-    if ! command -v certbot &> /dev/null; then
-        log_info "Instalando Certbot..."
-        wait_for_apt
-        apt-get install -y certbot || {
-            log_error "Falha ao instalar Certbot"
-            exit 1
-        }
-    else
-        log_info "Certbot já está instalado"
-    fi
+# {
+#     # Verifica se certbot já está instalado
+#     if ! command -v certbot &> /dev/null; then
+#         log_info "Instalando Certbot..."
+#         wait_for_apt
+#         apt-get install -y certbot || {
+#             log_error "Falha ao instalar Certbot"
+#             exit 1
+#         }
+#     else
+#         log_info "Certbot já está instalado"
+#     fi
 
-    # Configura renovação automática se não existir
-    if [ ! -f /etc/cron.d/certbot ]; then
-        log_info "Configurando renovação automática..."
-        echo "0 0,12 * * * root python3 -c 'import random; import time; time.sleep(random.random() * 3600)' && certbot renew -q" > /etc/cron.d/certbot
-    fi
+#     # Configura renovação automática se não existir
+#     if [ ! -f /etc/cron.d/certbot ]; then
+#         log_info "Configurando renovação automática..."
+#         echo "0 0,12 * * * root python3 -c 'import random; import time; time.sleep(random.random() * 3600)' && certbot renew -q" > /etc/cron.d/certbot
+#     fi
     
-    # Configura backup dos certificados se não existir
-    if [ ! -f /etc/cron.d/ssl-backup ]; then
-        log_info "Configurando backup dos certificados..."
-        echo "0 0 1 * * root tar -czf /root/letsencrypt-backup-\$(date +\%Y\%m).tar.gz /etc/letsencrypt/" > /etc/cron.d/ssl-backup
-    fi
+#     # Configura backup dos certificados se não existir
+#     if [ ! -f /etc/cron.d/ssl-backup ]; then
+#         log_info "Configurando backup dos certificados..."
+#         echo "0 0 1 * * root tar -czf /root/letsencrypt-backup-\$(date +\%Y\%m).tar.gz /etc/letsencrypt/" > /etc/cron.d/ssl-backup
+#     fi
     
-    # Verifica certificados existentes
-    if [ -d "/etc/letsencrypt/live/$DOMAIN" ] && [ -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ] && [ -f "/etc/letsencrypt/live/$DOMAIN/privkey.pem" ]; then
-        log_info "Usando certificados Let's Encrypt existentes"
-        SSL_CERT="/etc/letsencrypt/live/$DOMAIN/fullchain.pem"
-        SSL_KEY="/etc/letsencrypt/live/$DOMAIN/privkey.pem"
-    elif [ -f "/etc/nginx/ssl/nginx.crt" ] && [ -f "/etc/nginx/ssl/nginx.key" ]; then
-        log_info "Usando certificado auto-assinado existente"
-        SSL_CERT="/etc/nginx/ssl/nginx.crt"
-        SSL_KEY="/etc/nginx/ssl/nginx.key"
-    else
-        # Tenta gerar certificados Let's Encrypt primeiro
-        log_info "Tentando obter novos certificados Let's Encrypt..."
-        if certbot certonly --standalone -d "$DOMAIN" -d "agent.$DOMAIN" -d "waha.$DOMAIN" --non-interactive --agree-tos -m "$EMAIL"; then
-            log_info "Certificados Let's Encrypt obtidos com sucesso!"
-            SSL_CERT="/etc/letsencrypt/live/$DOMAIN/fullchain.pem"
-            SSL_KEY="/etc/letsencrypt/live/$DOMAIN/privkey.pem"
-        else
-            # Se falhar, gera certificado auto-assinado
-            log_warn "Não foi possível obter certificados Let's Encrypt. Gerando certificado auto-assinado..."
-            mkdir -p /etc/nginx/ssl
-            openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-                -keyout /etc/nginx/ssl/nginx.key \
-                -out /etc/nginx/ssl/nginx.crt \
-                -subj "/CN=$DOMAIN"
-            SSL_CERT="/etc/nginx/ssl/nginx.crt"
-            SSL_KEY="/etc/nginx/ssl/nginx.key"
-        fi
-    fi
+#     # Verifica certificados existentes
+#     if [ -d "/etc/letsencrypt/live/$DOMAIN" ] && [ -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ] && [ -f "/etc/letsencrypt/live/$DOMAIN/privkey.pem" ]; then
+#         log_info "Usando certificados Let's Encrypt existentes"
+#         SSL_CERT="/etc/letsencrypt/live/$DOMAIN/fullchain.pem"
+#         SSL_KEY="/etc/letsencrypt/live/$DOMAIN/privkey.pem"
+#     elif [ -f "/etc/nginx/ssl/nginx.crt" ] && [ -f "/etc/nginx/ssl/nginx.key" ]; then
+#         log_info "Usando certificado auto-assinado existente"
+#         SSL_CERT="/etc/nginx/ssl/nginx.crt"
+#         SSL_KEY="/etc/nginx/ssl/nginx.key"
+#     else
+#         # Tenta gerar certificados Let's Encrypt primeiro
+#         log_info "Tentando obter novos certificados Let's Encrypt..."
+#         if certbot certonly --standalone -d "$DOMAIN" -d "agent.$DOMAIN" -d "waha.$DOMAIN" --non-interactive --agree-tos -m "$EMAIL"; then
+#             log_info "Certificados Let's Encrypt obtidos com sucesso!"
+#             SSL_CERT="/etc/letsencrypt/live/$DOMAIN/fullchain.pem"
+#             SSL_KEY="/etc/letsencrypt/live/$DOMAIN/privkey.pem"
+#         else
+#             # Se falhar, gera certificado auto-assinado
+#             log_warn "Não foi possível obter certificados Let's Encrypt. Gerando certificado auto-assinado..."
+#             mkdir -p /etc/nginx/ssl
+#             openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+#                 -keyout /etc/nginx/ssl/nginx.key \
+#                 -out /etc/nginx/ssl/nginx.crt \
+#                 -subj "/CN=$DOMAIN"
+#             SSL_CERT="/etc/nginx/ssl/nginx.crt"
+#             SSL_KEY="/etc/nginx/ssl/nginx.key"
+#         fi
+#     fi
 
-    log_info "✓ Certificado SSL configurado: $SSL_CERT"
-}
+#     log_info "✓ Certificado SSL configurado: $SSL_CERT"
+# }
 
 ########################################################
 # Instalar e Configurar Nginx
 ########################################################
-{
-    log_info "Instalando Nginx..."
-    wait_for_apt
-    apt-get install -y nginx
+# {
+#     log_info "Instalando Nginx..."
+#     wait_for_apt
+#     apt-get install -y nginx
     
-    # Configura diretório do site
-    log_info "Configurando diretório do site..."
-    mkdir -p /root/site
-    chown -R root:root /root/site
-    chmod -R 755 /root/site
+#     # Configura diretório do site
+#     log_info "Configurando diretório do site..."
+#     mkdir -p /root/site
+#     chown -R root:root /root/site
+#     chmod -R 755 /root/site
     
-    # Gera parâmetros DH fortes
-    log_info "Gerando parâmetros DH..."
-    openssl dhparam -out /etc/nginx/ssl/dhparam.pem 2048
+#     # Gera parâmetros DH fortes
+#     log_info "Gerando parâmetros DH..."
+#     openssl dhparam -out /etc/nginx/ssl/dhparam.pem 2048
 
-    # Baixa template do Nginx
-    log_info "Baixando template do Nginx..."
-    NGINX_TEMPLATE_URL="https://raw.githubusercontent.com/alanalvestech/newvps/refs/heads/main/configs/nginx/app.conf.template"
-    wget -q "$NGINX_TEMPLATE_URL" -O /opt/newvps/templates/nginx.conf.template
+#     # Baixa template do Nginx
+#     log_info "Baixando template do Nginx..."
+#     NGINX_TEMPLATE_URL="https://raw.githubusercontent.com/alanalvestech/newvps/refs/heads/main/configs/nginx/app.conf.template"
+#     wget -q "$NGINX_TEMPLATE_URL" -O /opt/newvps/templates/nginx.conf.template
     
-    # Configura Nginx
-    log_info "Configurando Nginx..."
-    sed "s/{{DOMAIN}}/${DOMAIN}/g" /opt/newvps/templates/nginx.conf.template > /etc/nginx/sites-available/app
+#     # Configura Nginx
+#     log_info "Configurando Nginx..."
+#     sed "s/{{DOMAIN}}/${DOMAIN}/g" /opt/newvps/templates/nginx.conf.template > /etc/nginx/sites-available/app
 
-    # Atualiza caminhos dos certificados SSL
-    log_info "Atualizando configuração SSL..."
-    sed -i "s|ssl_certificate .*|ssl_certificate $SSL_CERT;|" /etc/nginx/sites-available/app
-    sed -i "s|ssl_certificate_key .*|ssl_certificate_key $SSL_KEY;|" /etc/nginx/sites-available/app
+#     # Atualiza caminhos dos certificados SSL
+#     log_info "Atualizando configuração SSL..."
+#     sed -i "s|ssl_certificate .*|ssl_certificate $SSL_CERT;|" /etc/nginx/sites-available/app
+#     sed -i "s|ssl_certificate_key .*|ssl_certificate_key $SSL_KEY;|" /etc/nginx/sites-available/app
 
-    ln -sf /etc/nginx/sites-available/app /etc/nginx/sites-enabled/
-    rm -f /etc/nginx/sites-enabled/default
+#     ln -sf /etc/nginx/sites-available/app /etc/nginx/sites-enabled/
+#     rm -f /etc/nginx/sites-enabled/default
 
-    # Testa e reinicia Nginx
-    log_info "Testando configuração do Nginx..."
-    nginx -t && systemctl restart nginx
-}
+#     # Testa e reinicia Nginx
+#     log_info "Testando configuração do Nginx..."
+#     nginx -t && systemctl restart nginx
+# }
 
 ########################################################
 # Instalar WAHA
