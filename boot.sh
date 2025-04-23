@@ -240,16 +240,21 @@ uninstall() {
 # Instalar Git
 ########################################################
 {
-    log_info "Instalando Git..."
-    wait_for_apt
-    apt-get install -y git
-
+    # Verifica se Git já está instalado
     if ! command -v git &> /dev/null; then
-        log_error "Falha na instalação do Git"
-        exit 1
-    fi
+        log_info "Instalando Git..."
+        wait_for_apt
+        apt-get install -y git
 
-    log_info "Git instalado com sucesso!"
+        if ! command -v git &> /dev/null; then
+            log_error "Falha na instalação do Git"
+            exit 1
+        fi
+        log_info "Git instalado com sucesso!"
+    else
+        log_info "Git já está instalado"
+    fi
+    
     log_info "Versão: $(git --version)"
 }
 
