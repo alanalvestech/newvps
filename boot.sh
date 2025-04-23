@@ -271,20 +271,20 @@ uninstall() {
         log_info "Versão: $(python3 --version)"
     fi
 
-    # Verifica se FastAPI já está instalado
-    if ! pip show fastapi &> /dev/null; then
-        log_info "Instalando FastAPI..."
-        pip install fastapi uvicorn python-dotenv || {
-            log_error "Falha ao instalar FastAPI"
-            exit 1
-        }
-        log_info "FastAPI instalado com sucesso!"
-    else
-        log_info "FastAPI já está instalado"
-    fi
+    # # Verifica se FastAPI já está instalado
+    # if ! pip show fastapi &> /dev/null; then
+    #     log_info "Instalando FastAPI..."
+    #     pip install fastapi uvicorn python-dotenv || {
+    #         log_error "Falha ao instalar FastAPI"
+    #         exit 1
+    #     }
+    #     log_info "FastAPI instalado com sucesso!"
+    # else
+    #     log_info "FastAPI já está instalado"
+    # fi
 
-    log_info "Versão FastAPI: $(pip show fastapi | grep Version)"
-    log_info "Versão Uvicorn: $(pip show uvicorn | grep Version)"
+    # log_info "Versão FastAPI: $(pip show fastapi | grep Version)"
+    # log_info "Versão Uvicorn: $(pip show uvicorn | grep Version)"
 }
 
 ########################################################
