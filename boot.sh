@@ -381,7 +381,8 @@ uninstall() {
     # Cria diretórios necessários
     log_info "Criando diretórios..."
     mkdir -p /etc/nginx/ssl
-    mkdir -p /root/{site,app}
+    mkdir -p /root/site
+    mkdir -p /root/app
     
     # Gera parâmetros DH fortes
     log_info "Gerando parâmetros DH..."
