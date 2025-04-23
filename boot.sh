@@ -74,9 +74,6 @@ wait_for_apt() {
 #     # pkill -9 -f docker || true
 #     # sleep 2
 
-#     # Remove script de instalação
-#     rm -f boot.sh
-
 #     log_info "Desinstalação concluída com sucesso!"
 #     exit 0
 # }
@@ -452,4 +449,9 @@ wait_for_apt() {
 ########################################################
 # Finalização
 ########################################################
-log_info "Instalação concluída!"
+{
+    # Remove script de instalação
+    rm -f boot.sh
+
+    log_info "Instalação concluída!"
+}
