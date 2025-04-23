@@ -43,51 +43,6 @@ wait_for_apt() {
 }
 
 ########################################################
-# Função de desinstalação
-########################################################
-# uninstall() {
-#     # Check if running as root
-#     if [ "$EUID" -ne 0 ]; then 
-#         log_error "Execute como root"
-#         exit 1
-#     fi
-
-#     # # Remove WAHA
-#     # log_info "Removendo WAHA..."
-#     # if command -v docker &> /dev/null; then
-#     #     if [ -f docker/waha/docker-compose.yaml ]; then
-#     #         docker compose -f docker/waha/docker-compose.yaml down -v || true
-#     #     fi
-#     # fi
-
-#     # # Para todos os containers
-#     # if command -v docker &> /dev/null; then
-#     #     docker stop $(docker ps -aq) 2>/dev/null || true
-#     #     docker rm $(docker ps -aq) 2>/dev/null || true
-#     #     docker network prune -f 2>/dev/null || true
-#     #     docker volume prune -f 2>/dev/null || true
-#     #     docker system prune -af 2>/dev/null || true
-#     # fi
-
-#     # # Força kill de processos Docker remanescentes
-#     # log_info "Removendo Docker..."
-#     # pkill -9 -f docker || true
-#     # sleep 2
-
-#     log_info "Desinstalação concluída com sucesso!"
-#     exit 0
-# }
-
-########################################################
-# Verificar argumentos
-########################################################
-{
-    if [ "${1:-}" = "uninstall" ]; then
-        uninstall "${@}"
-    fi
-}
-
-########################################################
 # Verificar root e criar estrutura
 ########################################################
 {
@@ -201,7 +156,6 @@ wait_for_apt() {
 # Instalar e Configurar SSL
 ########################################################
 {
-    # Verifica se já existe certificado Let's Encrypt válido
     if [ -f "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" ] && [ -f "/etc/letsencrypt/live/${DOMAIN}/privkey.pem" ]; then
         log_info "Certificado Let's Encrypt já existe"
         SSL_CERT="/etc/letsencrypt/live/${DOMAIN}/fullchain.pem"
@@ -213,18 +167,15 @@ wait_for_apt() {
             certbot renew --quiet
         fi
     else
-        # Tenta instalar e configurar Let's Encrypt
         log_info "Tentando configurar Let's Encrypt..."
         if apt-get install -y certbot python3-certbot-nginx &>/dev/null; then
             log_info "Gerando certificado Let's Encrypt..."
             if certbot certonly --nginx -d "${DOMAIN}" --non-interactive --agree-tos -m "${EMAIL}" &>/dev/null; then
                 log_info "✓ Let's Encrypt configurado com sucesso"
                 
-                # Configura renovação automática
                 log_info "Configurando renovação automática..."
                 echo "0 0,12 * * * root python3 -c 'import random; import time; time.sleep(random.random() * 3600)' && certbot renew -q" > /etc/cron.d/certbot
                 
-                # Configura backup dos certificados
                 log_info "Configurando backup dos certificados..."
                 echo "0 0 1 * * root tar -czf /root/letsencrypt-backup-\$(date +\%Y\%m).tar.gz /etc/letsencrypt/" > /etc/cron.d/ssl-backup
                 
@@ -240,9 +191,7 @@ wait_for_apt() {
         fi
     fi
 
-    # Fallback para certificado auto-assinado
     if [ "${USE_SELF_SIGNED}" = "true" ]; then
-        # Verifica se já existe certificado auto-assinado válido
         if [ -f "/etc/nginx/ssl/nginx.crt" ] && [ -f "/etc/nginx/ssl/nginx.key" ]; then
             log_info "Certificado auto-assinado já existe"
             SSL_CERT="/etc/nginx/ssl/nginx.crt"
