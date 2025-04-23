@@ -251,46 +251,6 @@ wait_for_apt() {
     mkdir -p /root/site
     chmod -R 755 /root/site
     
-    # Cria página temporária
-    log_info "Criando página temporária..."
-    cat > /root/site/index.html << EOF
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Site em Construção</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            background: #f0f2f5;
-        }
-        .container {
-            text-align: center;
-            padding: 20px;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        h1 { color: #1a73e8; }
-        p { color: #5f6368; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Site em Construção</h1>
-        <p>Em breve, novidades por aqui!</p>
-        <p>Domínio: ${DOMAIN}</p>
-    </div>
-</body>
-</html>
-EOF
-
     # Gera parâmetros DH fortes
     log_info "Gerando parâmetros DH..."
     openssl dhparam -out /etc/nginx/ssl/dhparam.pem 2048
