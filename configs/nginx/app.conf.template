@@ -4,9 +4,8 @@ server {
     listen [::]:80;
     server_name {{DOMAIN}};
     
-    location / {
-        return 301 https://$host$request_uri;
-    }
+    # Redireciona todo tráfego HTTP para HTTPS
+    return 301 https://$server_name$request_uri;
 }
 
 # Configuração HTTPS
@@ -46,11 +45,11 @@ server {
     send_timeout 60;
 
     # Root para site estático
-    root /root/site;
+    root /var/www/html;
     index index.html;
 
     location / {
-        try_files $uri $uri/ =404;
+        try_files $uri $uri/ /index.html;
     }
 
     # Página de erro para debug
