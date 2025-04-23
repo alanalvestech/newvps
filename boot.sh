@@ -143,11 +143,19 @@ wait_for_apt() {
 # Atualizar sistema
 ########################################################
 {
-    log_info "Atualizando sistema..."
+    log_info "Verificando atualizações..."
     wait_for_apt
     apt-get update
-    wait_for_apt
-    apt-get upgrade -y
+    
+    # Verifica se há atualizações pendentes
+    if apt list --upgradable 2>/dev/null | grep -q "^[a-zA-Z]"; then
+        log_info "Atualizando pacotes..."
+        wait_for_apt
+        apt-get upgrade -y
+        log_info "Sistema atualizado com sucesso!"
+    else
+        log_info "Sistema já está atualizado"
+    fi
 }
 
 ########################################################
