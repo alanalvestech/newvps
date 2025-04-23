@@ -381,11 +381,11 @@ uninstall() {
     # Cria diretórios necessários
     log_info "Criando diretórios..."
     mkdir -p /etc/nginx/ssl
-    mkdir -p /var/www/{site,app}
+    mkdir -p /root/{site,app}
     
     # Define permissões
-    chown -R www-data:www-data /var/www/site
-    chown -R www-data:www-data /var/www/app
+    chown -R www-data:www-data /root/site
+    chown -R www-data:www-data /root/app
     
     # Gera parâmetros DH fortes
     log_info "Gerando parâmetros DH..."
@@ -404,11 +404,11 @@ uninstall() {
     rm -f /etc/nginx/sites-enabled/default
 
     # Cria páginas de teste
-    echo "<h1>Site Principal - $DOMAIN</h1>" > /var/www/site/index.html
-    echo "<h1>API - agent.$DOMAIN</h1>" > /var/www/app/index.html
+    echo "<h1>Site Principal - $DOMAIN</h1>" > /root/site/index.html
+    echo "<h1>API - agent.$DOMAIN</h1>" > /root/app/index.html
     
-    chown www-data:www-data /var/www/site/index.html
-    chown www-data:www-data /var/www/app/index.html
+    chown www-data:www-data /root/site/index.html
+    chown www-data:www-data /root/app/index.html
 
     # Testa e reinicia Nginx
     log_info "Testando configuração do Nginx..."
