@@ -350,6 +350,27 @@ uninstall() {
 }
 
 ########################################################
+# Instalar e Configurar SSL
+########################################################
+{
+    log_info "Instalando Certbot..."
+    wait_for_apt
+    apt-get install -y certbot
+
+    # Configura renovação automática
+    log_info "Configurando renovação automática..."
+    echo "0 0,12 * * * root python3 -c 'import random; import time; time.sleep(random.random() * 3600)' && certbot renew -q" > /etc/cron.d/certbot
+    
+    # Backup diretório SSL
+    log_info "Configurando backup dos certificados..."
+    echo "0 0 1 * * root tar -czf /root/letsencrypt-backup-\$(date +\%Y\%m).tar.gz /etc/letsencrypt/" > /etc/cron.d/ssl-backup
+    
+    # Obtém certificado SSL standalone
+    log_info "Obtendo certificados..."
+    certbot certonly --standalone -d "$DOMAIN" --non-interactive --agree-tos -m "$EMAIL"
+}
+
+########################################################
 # Instalar e Configurar Nginx
 ########################################################
 {
@@ -372,50 +393,22 @@ uninstall() {
     NGINX_TEMPLATE_URL="https://raw.githubusercontent.com/alanalvestech/newvps/refs/heads/main/configs/nginx/app.conf.template"
     NGINX_INITIAL_URL="https://raw.githubusercontent.com/alanalvestech/newvps/refs/heads/main/configs/nginx/initial.conf.template"
     
-    wget -q "$NGINX_TEMPLATE_URL" -O /opt/newvps/templates/nginx.conf.template
     wget -q "$NGINX_INITIAL_URL" -O /opt/newvps/templates/nginx.initial.template
+    wget -q "$NGINX_TEMPLATE_URL" -O /opt/newvps/templates/nginx.conf.template
     
-    # Configura Nginx apenas com HTTP inicialmente
+    # Configura Nginx com HTTPS desde o início
     log_info "Configurando Nginx..."
     sed "s/{{DOMAIN}}/${DOMAIN}/g" /opt/newvps/templates/nginx.initial.template > /etc/nginx/sites-available/app
 
     ln -sf /etc/nginx/sites-available/app /etc/nginx/sites-enabled/
     rm -f /etc/nginx/sites-enabled/default
 
-    # Testa e reinicia Nginx
-    log_info "Testando configuração do Nginx..."
-    nginx -t && systemctl restart nginx
-}
-
-########################################################
-# Instalar e Configurar SSL
-########################################################
-{
-    log_info "Instalando Certbot..."
-    wait_for_apt
-    apt-get install -y certbot python3-certbot-nginx
-
-    # Configura renovação automática
-    log_info "Configurando renovação automática..."
-    echo "0 0,12 * * * root python3 -c 'import random; import time; time.sleep(random.random() * 3600)' && certbot renew -q" > /etc/cron.d/certbot
-    
-    # Backup diretório SSL
-    log_info "Configurando backup dos certificados..."
-    echo "0 0 1 * * root tar -czf /root/letsencrypt-backup-\$(date +\%Y\%m).tar.gz /etc/letsencrypt/" > /etc/cron.d/ssl-backup
-    
-    # Obtém certificado SSL
-    log_info "Obtendo certificados..."
-    certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos -m "$EMAIL"
-
-    # Aplica configuração completa do Nginx com SSL
-    log_info "Aplicando configuração SSL..."
-    sed "s/{{DOMAIN}}/${DOMAIN}/g" /opt/newvps/templates/nginx.conf.template > /etc/nginx/sites-available/app
-    
     # Cria página de teste
     echo "<h1>Servidor configurado com sucesso!</h1>" > /var/www/html/index.html
     chown www-data:www-data /var/www/html/index.html
-    
-    # Reinicia Nginx com nova configuração
+
+    # Testa e reinicia Nginx
+    log_info "Testando configuração do Nginx..."
     nginx -t && systemctl restart nginx
 }
 

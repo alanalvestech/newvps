@@ -1,7 +1,15 @@
 server {
-    listen 80;
-    listen [::]:80;
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
     server_name {{DOMAIN}};
+
+    # SSL com Cloudflare
+    ssl_certificate /etc/letsencrypt/live/{{DOMAIN}}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/{{DOMAIN}}/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    
+    # Headers de segurança
+    add_header Strict-Transport-Security "max-age=63072000" always;
     
     root /var/www/html;
     index index.html;
