@@ -402,10 +402,6 @@ uninstall() {
 
     ln -sf /etc/nginx/sites-available/app /etc/nginx/sites-enabled/
     rm -f /etc/nginx/sites-enabled/default
-
-    # Cria páginas de teste
-    echo "<h1>Site Principal - $DOMAIN</h1>" > /root/site/index.html
-    echo "<h1>API - agent.$DOMAIN</h1>" > /root/app/index.html
     
     chown www-data:www-data /root/site/index.html
     chown www-data:www-data /root/app/index.html

@@ -1,5 +1,13 @@
-# Log mais detalhado para debug
-error_log /var/log/nginx/error.log debug;
+# Configuração HTTP
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name {{DOMAIN}};
+    
+    location / {
+        return 301 https://$server_name$request_uri;
+    }
+}
 
 # Configuração HTTPS para site principal
 server {
@@ -33,89 +41,6 @@ server {
 
     location / {
         try_files $uri $uri/ =404;
-    }
-}
-
-# Configuração HTTPS para API
-server {
-    listen 443 ssl http2;
-    listen [::]:443 ssl http2;
-    server_name agent.{{DOMAIN}};
-
-    # SSL
-    ssl_certificate /etc/letsencrypt/live/agent.{{DOMAIN}}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/agent.{{DOMAIN}}/privkey.pem;
-    ssl_protocols TLSv1.2 TLSv1.3;
-    
-    # Headers de segurança
-    add_header Strict-Transport-Security "max-age=63072000" always;
-    
-    # Logs
-    access_log /var/log/nginx/api_access.log combined;
-    error_log /var/log/nginx/api_error.log warn;
-
-    # Root para API
-    root /root/app;
-    index index.html;
-
-    # Proxy para FastAPI
-    location / {
-        proxy_pass http://localhost:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto https;
-        proxy_redirect off;
-        
-        # Timeouts
-        proxy_connect_timeout 60;
-        proxy_send_timeout 60;
-        proxy_read_timeout 60;
-    }
-}
-
-# Configuração HTTPS para WAHA
-server {
-    listen 443 ssl http2;
-    listen [::]:443 ssl http2;
-    server_name waha.{{DOMAIN}};
-
-    # SSL
-    ssl_certificate /etc/letsencrypt/live/waha.{{DOMAIN}}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/waha.{{DOMAIN}}/privkey.pem;
-    ssl_protocols TLSv1.2 TLSv1.3;
-    
-    # Headers de segurança
-    add_header Strict-Transport-Security "max-age=63072000" always;
-    
-    # Logs
-    access_log /var/log/nginx/waha_access.log combined;
-    error_log /var/log/nginx/waha_error.log warn;
-
-    # Proxy para WAHA
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto https;
-        proxy_redirect off;
-        
-        # Timeouts
-        proxy_connect_timeout 60;
-        proxy_send_timeout 60;
-        proxy_read_timeout 60;
-    }
-}
-
-# Configuração HTTP
-server {
-    listen 80 default_server;
-    listen [::]:80 default_server;
-    server_name {{DOMAIN}};
-    
-    location / {
-        return 301 https://$server_name$request_uri;
     }
 }
 
