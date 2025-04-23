@@ -54,9 +54,10 @@ uninstall() {
 
     # Remove Git if installed
     log_info "Removendo Git..."
-    if dpkg -l | grep -q "^ii.*git"; then
+    if command -v git &> /dev/null; then
         apt-get remove --purge -y git || true
-    fi    
+        rm -f /usr/bin/git || true
+    fi
 
     # # Remove Nginx
     # log_info "Removendo Nginx..."
