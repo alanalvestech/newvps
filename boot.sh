@@ -45,50 +45,50 @@ wait_for_apt() {
 ########################################################
 # Função de desinstalação
 ########################################################
-uninstall() {
-    # Check if running as root
-    if [ "$EUID" -ne 0 ]; then 
-        log_error "Execute como root"
-        exit 1
-    fi
+# uninstall() {
+#     # Check if running as root
+#     if [ "$EUID" -ne 0 ]; then 
+#         log_error "Execute como root"
+#         exit 1
+#     fi
 
-    # # Remove WAHA
-    # log_info "Removendo WAHA..."
-    # if command -v docker &> /dev/null; then
-    #     if [ -f docker/waha/docker-compose.yaml ]; then
-    #         docker compose -f docker/waha/docker-compose.yaml down -v || true
-    #     fi
-    # fi
+#     # # Remove WAHA
+#     # log_info "Removendo WAHA..."
+#     # if command -v docker &> /dev/null; then
+#     #     if [ -f docker/waha/docker-compose.yaml ]; then
+#     #         docker compose -f docker/waha/docker-compose.yaml down -v || true
+#     #     fi
+#     # fi
 
-    # # Para todos os containers
-    # if command -v docker &> /dev/null; then
-    #     docker stop $(docker ps -aq) 2>/dev/null || true
-    #     docker rm $(docker ps -aq) 2>/dev/null || true
-    #     docker network prune -f 2>/dev/null || true
-    #     docker volume prune -f 2>/dev/null || true
-    #     docker system prune -af 2>/dev/null || true
-    # fi
+#     # # Para todos os containers
+#     # if command -v docker &> /dev/null; then
+#     #     docker stop $(docker ps -aq) 2>/dev/null || true
+#     #     docker rm $(docker ps -aq) 2>/dev/null || true
+#     #     docker network prune -f 2>/dev/null || true
+#     #     docker volume prune -f 2>/dev/null || true
+#     #     docker system prune -af 2>/dev/null || true
+#     # fi
 
-    # # Força kill de processos Docker remanescentes
-    # log_info "Removendo Docker..."
-    # pkill -9 -f docker || true
-    # sleep 2
+#     # # Força kill de processos Docker remanescentes
+#     # log_info "Removendo Docker..."
+#     # pkill -9 -f docker || true
+#     # sleep 2
 
-    # Remove script de instalação
-    rm -f boot.sh
+#     # Remove script de instalação
+#     rm -f boot.sh
 
-    log_info "Desinstalação concluída com sucesso!"
-    exit 0
-}
+#     log_info "Desinstalação concluída com sucesso!"
+#     exit 0
+# }
 
 ########################################################
 # Verificar argumentos
 ########################################################
-{
-    if [ "${1:-}" = "uninstall" ]; then
-        uninstall "${@}"
-    fi
-}
+# {
+#     if [ "${1:-}" = "uninstall" ]; then
+#         uninstall "${@}"
+#     fi
+# }
 
 ########################################################
 # Verificar root e criar estrutura
