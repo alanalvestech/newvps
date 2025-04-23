@@ -60,11 +60,11 @@ uninstall() {
     fi
     
     # Remove Python packages if they exist
-    for pkg in python3-pip python3-venv python3; do
-        if dpkg -l | grep -q "^ii.*$pkg"; then
-            apt-get remove --purge -y "$pkg" || true
-        fi
-    done
+    log_info "Removendo Python..."
+    if command -v python3 &> /dev/null; then
+        apt-get remove --purge -y python3 python3-pip python3-venv || true
+        rm -f /usr/bin/python3 || true
+    fi
 
     # # Remove Nginx
     # log_info "Removendo Nginx..."
