@@ -365,9 +365,9 @@ uninstall() {
     log_info "Configurando backup dos certificados..."
     echo "0 0 1 * * root tar -czf /root/letsencrypt-backup-\$(date +\%Y\%m).tar.gz /etc/letsencrypt/" > /etc/cron.d/ssl-backup
     
-    # Obtém certificado SSL standalone
+    # Obtém certificados SSL standalone para todos domínios
     log_info "Obtendo certificados..."
-    certbot certonly --standalone -d "$DOMAIN" --non-interactive --agree-tos -m "$EMAIL"
+    certbot certonly --standalone -d "$DOMAIN" -d "agent.$DOMAIN" -d "waha.$DOMAIN" --non-interactive --agree-tos -m "$EMAIL"
 }
 
 ########################################################
@@ -381,31 +381,34 @@ uninstall() {
     # Cria diretórios necessários
     log_info "Criando diretórios..."
     mkdir -p /etc/nginx/ssl
-    mkdir -p /var/www/html
-    chown -R www-data:www-data /var/www/html
+    mkdir -p /var/www/{site,app}
+    
+    # Define permissões
+    chown -R www-data:www-data /var/www/site
+    chown -R www-data:www-data /var/www/app
     
     # Gera parâmetros DH fortes
     log_info "Gerando parâmetros DH..."
     openssl dhparam -out /etc/nginx/ssl/dhparam.pem 2048
 
-    # Baixa templates do Nginx
-    log_info "Baixando templates do Nginx..."
+    # Baixa template do Nginx
+    log_info "Baixando template do Nginx..."
     NGINX_TEMPLATE_URL="https://raw.githubusercontent.com/alanalvestech/newvps/refs/heads/main/configs/nginx/app.conf.template"
-    NGINX_INITIAL_URL="https://raw.githubusercontent.com/alanalvestech/newvps/refs/heads/main/configs/nginx/initial.conf.template"
-    
-    wget -q "$NGINX_INITIAL_URL" -O /opt/newvps/templates/nginx.initial.template
     wget -q "$NGINX_TEMPLATE_URL" -O /opt/newvps/templates/nginx.conf.template
     
-    # Configura Nginx com HTTPS desde o início
+    # Configura Nginx
     log_info "Configurando Nginx..."
-    sed "s/{{DOMAIN}}/${DOMAIN}/g" /opt/newvps/templates/nginx.initial.template > /etc/nginx/sites-available/app
+    sed "s/{{DOMAIN}}/${DOMAIN}/g" /opt/newvps/templates/nginx.conf.template > /etc/nginx/sites-available/app
 
     ln -sf /etc/nginx/sites-available/app /etc/nginx/sites-enabled/
     rm -f /etc/nginx/sites-enabled/default
 
-    # Cria página de teste
-    echo "<h1>Servidor configurado com sucesso!</h1>" > /var/www/html/index.html
-    chown www-data:www-data /var/www/html/index.html
+    # Cria páginas de teste
+    echo "<h1>Site Principal - $DOMAIN</h1>" > /var/www/site/index.html
+    echo "<h1>API - agent.$DOMAIN</h1>" > /var/www/app/index.html
+    
+    chown www-data:www-data /var/www/site/index.html
+    chown www-data:www-data /var/www/app/index.html
 
     # Testa e reinicia Nginx
     log_info "Testando configuração do Nginx..."

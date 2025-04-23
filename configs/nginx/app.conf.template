@@ -1,23 +1,12 @@
 # Log mais detalhado para debug
 error_log /var/log/nginx/error.log debug;
 
-# Configuração HTTP
+# Configuração HTTPS para site principal
 server {
-    listen 80 default_server;
-    listen [::]:80 default_server;
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
     server_name {{DOMAIN}};
-    
-    location / {
-        return 301 https://$server_name$request_uri;
-    }
-}
 
-# Configuração HTTPS
-server {
-    listen 443 ssl http2 default_server;
-    listen [::]:443 ssl http2 default_server;
-    server_name {{DOMAIN}};
-    
     # SSL
     ssl_certificate /etc/letsencrypt/live/{{DOMAIN}}/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/{{DOMAIN}}/privkey.pem;
@@ -31,71 +20,114 @@ server {
     resolver 8.8.8.8 8.8.4.4 valid=300s;
     resolver_timeout 5s;
     
-    # HSTS
+    # Headers de segurança
     add_header Strict-Transport-Security "max-age=63072000" always;
     
-    # Buffer sizes
-    client_max_body_size 64M;
-    client_body_buffer_size 128k;
-    
-    # Timeouts
-    client_header_timeout 60;
-    client_body_timeout 60;
-    keepalive_timeout 60;
-    send_timeout 60;
+    # Logs
+    access_log /var/log/nginx/site_access.log combined;
+    error_log /var/log/nginx/site_error.log warn;
 
-    # Logs específicos para esta configuração
-    access_log /var/log/nginx/ssl_access.log combined;
-    error_log /var/log/nginx/ssl_error.log debug;
-
-    # Root path para arquivos estáticos
-    root /var/www/html;
+    # Root para site estático
+    root /var/www/site;
     index index.html;
 
-    # Proxy para a API
     location / {
-        # Debug headers
-        add_header X-Debug-Message "Proxy to API" always;
-        
+        try_files $uri $uri/ =404;
+    }
+}
+
+# Configuração HTTPS para API
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name agent.{{DOMAIN}};
+
+    # SSL
+    ssl_certificate /etc/letsencrypt/live/agent.{{DOMAIN}}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/agent.{{DOMAIN}}/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    
+    # Headers de segurança
+    add_header Strict-Transport-Security "max-age=63072000" always;
+    
+    # Logs
+    access_log /var/log/nginx/api_access.log combined;
+    error_log /var/log/nginx/api_error.log warn;
+
+    # Proxy para FastAPI
+    location / {
         proxy_pass http://localhost:8000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto https;
-        
-        # Previne redirecionamentos
         proxy_redirect off;
         
-        # Timeouts mais curtos para debug
-        proxy_connect_timeout 10;
-        proxy_send_timeout 10;
-        proxy_read_timeout 10;
+        # Timeouts
+        proxy_connect_timeout 60;
+        proxy_send_timeout 60;
+        proxy_read_timeout 60;
     }
+}
 
-    # Configuração para o WAHA
-    location /waha/ {
-        # Debug headers
-        add_header X-Debug-Message "Proxy to WAHA" always;
-        
-        proxy_pass http://localhost:3000/;
+# Configuração HTTPS para WAHA
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name waha.{{DOMAIN}};
+
+    # SSL
+    ssl_certificate /etc/letsencrypt/live/waha.{{DOMAIN}}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/waha.{{DOMAIN}}/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    
+    # Headers de segurança
+    add_header Strict-Transport-Security "max-age=63072000" always;
+    
+    # Logs
+    access_log /var/log/nginx/waha_access.log combined;
+    error_log /var/log/nginx/waha_error.log warn;
+
+    # Proxy para WAHA
+    location / {
+        proxy_pass http://localhost:3000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto https;
-        
-        # Previne redirecionamentos
         proxy_redirect off;
         
-        # Timeouts mais curtos para debug
-        proxy_connect_timeout 10;
-        proxy_send_timeout 10;
-        proxy_read_timeout 10;
+        # Timeouts
+        proxy_connect_timeout 60;
+        proxy_send_timeout 60;
+        proxy_read_timeout 60;
     }
+}
 
-    # Página de erro para debug
-    error_page 500 502 503 504 /50x.html;
-    location = /50x.html {
-        root /usr/share/nginx/html;
-        internal;
+# Configuração HTTP
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name {{DOMAIN}};
+    
+    location / {
+        return 301 https://$server_name$request_uri;
     }
-} 
+}
+
+# Página de erro para debug
+error_page 500 502 503 504 /50x.html;
+location = /50x.html {
+    root /usr/share/nginx/html;
+    internal;
+}
+
+# Buffer sizes
+client_max_body_size 64M;
+client_body_buffer_size 128k;
+
+# Timeouts
+client_header_timeout 60;
+client_body_timeout 60;
+keepalive_timeout 60;
+send_timeout 60; 
