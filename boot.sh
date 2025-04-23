@@ -383,10 +383,6 @@ uninstall() {
     mkdir -p /etc/nginx/ssl
     mkdir -p /root/{site,app}
     
-    # Define permissões
-    chown -R www-data:www-data /root/site
-    chown -R www-data:www-data /root/app
-    
     # Gera parâmetros DH fortes
     log_info "Gerando parâmetros DH..."
     openssl dhparam -out /etc/nginx/ssl/dhparam.pem 2048
@@ -402,9 +398,6 @@ uninstall() {
 
     ln -sf /etc/nginx/sites-available/app /etc/nginx/sites-enabled/
     rm -f /etc/nginx/sites-enabled/default
-    
-    chown www-data:www-data /root/site/index.html
-    chown www-data:www-data /root/app/index.html
 
     # Testa e reinicia Nginx
     log_info "Testando configuração do Nginx..."
