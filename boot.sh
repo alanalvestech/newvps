@@ -201,51 +201,71 @@ wait_for_apt() {
 # Instalar e Configurar SSL
 ########################################################
 {
-    # Tenta instalar e configurar Let's Encrypt
-    log_info "Tentando configurar Let's Encrypt..."
-    if apt-get install -y certbot python3-certbot-nginx &>/dev/null; then
-        log_info "Gerando certificado Let's Encrypt..."
-        if certbot certonly --nginx -d "${DOMAIN}" --non-interactive --agree-tos -m "${EMAIL}" &>/dev/null; then
-            log_info "✓ Let's Encrypt configurado com sucesso"
-            
-            # Configura renovação automática
-            log_info "Configurando renovação automática..."
-            echo "0 0,12 * * * root python3 -c 'import random; import time; time.sleep(random.random() * 3600)' && certbot renew -q" > /etc/cron.d/certbot
-            
-            # Configura backup dos certificados
-            log_info "Configurando backup dos certificados..."
-            echo "0 0 1 * * root tar -czf /root/letsencrypt-backup-\$(date +\%Y\%m).tar.gz /etc/letsencrypt/" > /etc/cron.d/ssl-backup
-            
-            SSL_CERT="/etc/letsencrypt/live/${DOMAIN}/fullchain.pem"
-            SSL_KEY="/etc/letsencrypt/live/${DOMAIN}/privkey.pem"
-        else
-            log_warn "Não foi possível obter certificado Let's Encrypt"
-            USE_SELF_SIGNED=true
+    # Verifica se já existe certificado Let's Encrypt válido
+    if [ -f "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" ] && [ -f "/etc/letsencrypt/live/${DOMAIN}/privkey.pem" ]; then
+        log_info "Certificado Let's Encrypt já existe"
+        SSL_CERT="/etc/letsencrypt/live/${DOMAIN}/fullchain.pem"
+        SSL_KEY="/etc/letsencrypt/live/${DOMAIN}/privkey.pem"
+        
+        # Verifica se precisa renovar
+        if certbot certificates | grep -q "${DOMAIN}.*VALID: 30 days or less"; then
+            log_info "Renovando certificado Let's Encrypt..."
+            certbot renew --quiet
         fi
     else
-        log_warn "Let's Encrypt não disponível"
-        USE_SELF_SIGNED=true
+        # Tenta instalar e configurar Let's Encrypt
+        log_info "Tentando configurar Let's Encrypt..."
+        if apt-get install -y certbot python3-certbot-nginx &>/dev/null; then
+            log_info "Gerando certificado Let's Encrypt..."
+            if certbot certonly --nginx -d "${DOMAIN}" --non-interactive --agree-tos -m "${EMAIL}" &>/dev/null; then
+                log_info "✓ Let's Encrypt configurado com sucesso"
+                
+                # Configura renovação automática
+                log_info "Configurando renovação automática..."
+                echo "0 0,12 * * * root python3 -c 'import random; import time; time.sleep(random.random() * 3600)' && certbot renew -q" > /etc/cron.d/certbot
+                
+                # Configura backup dos certificados
+                log_info "Configurando backup dos certificados..."
+                echo "0 0 1 * * root tar -czf /root/letsencrypt-backup-\$(date +\%Y\%m).tar.gz /etc/letsencrypt/" > /etc/cron.d/ssl-backup
+                
+                SSL_CERT="/etc/letsencrypt/live/${DOMAIN}/fullchain.pem"
+                SSL_KEY="/etc/letsencrypt/live/${DOMAIN}/privkey.pem"
+            else
+                log_warn "Não foi possível obter certificado Let's Encrypt"
+                USE_SELF_SIGNED=true
+            fi
+        else
+            log_warn "Let's Encrypt não disponível"
+            USE_SELF_SIGNED=true
+        fi
     fi
 
     # Fallback para certificado auto-assinado
     if [ "${USE_SELF_SIGNED}" = "true" ]; then
-        log_info "Gerando certificado auto-assinado..."
-        mkdir -p /etc/nginx/ssl
-        openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-            -keyout /etc/nginx/ssl/nginx.key \
-            -out /etc/nginx/ssl/nginx.crt \
-            -subj "/CN=${DOMAIN}" &>/dev/null
-            
-        SSL_CERT="/etc/nginx/ssl/nginx.crt"
-        SSL_KEY="/etc/nginx/ssl/nginx.key"
-        log_info "✓ Certificado auto-assinado gerado"
+        # Verifica se já existe certificado auto-assinado válido
+        if [ -f "/etc/nginx/ssl/nginx.crt" ] && [ -f "/etc/nginx/ssl/nginx.key" ]; then
+            log_info "Certificado auto-assinado já existe"
+            SSL_CERT="/etc/nginx/ssl/nginx.crt"
+            SSL_KEY="/etc/nginx/ssl/nginx.key"
+        else
+            log_info "Gerando certificado auto-assinado..."
+            mkdir -p /etc/nginx/ssl
+            openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+                -keyout /etc/nginx/ssl/nginx.key \
+                -out /etc/nginx/ssl/nginx.crt \
+                -subj "/CN=${DOMAIN}" &>/dev/null
+                
+            SSL_CERT="/etc/nginx/ssl/nginx.crt"
+            SSL_KEY="/etc/nginx/ssl/nginx.key"
+            log_info "✓ Certificado auto-assinado gerado"
+        fi
     fi
 
     log_info "✓ SSL configurado ($([ "${USE_SELF_SIGNED}" = "true" ] && echo "auto-assinado" || echo "Let's Encrypt"))"
 }
 
 ########################################################
-# Configurar Nginx
+# Configurar Nginx (site)
 ########################################################
 {
     # Configura diretório do site
