@@ -267,24 +267,31 @@ wait_for_apt() {
         log_info "Parâmetros DH já existem"
     fi
 
-    # Baixa template do Nginx
-    log_info "Baixando template do Nginx..."
-    NGINX_TEMPLATE_URL="https://raw.githubusercontent.com/alanalvestech/newvps/refs/heads/main/configs/nginx/site.conf.template"
-    wget -q "$NGINX_TEMPLATE_URL" -O /opt/newvps/templates/nginx.conf.template
-    
     # Configura Nginx
     log_info "Configurando Nginx..."
-    sed "s/{{DOMAIN}}/${DOMAIN}/g" /opt/newvps/templates/nginx.conf.template > /etc/nginx/sites-available/app
+    
+    # Cria diretório de templates se não existir
+    mkdir -p /opt/newvps/templates
 
-    # Cria link simbólico se não existir
-    if [ ! -L "/etc/nginx/sites-enabled/app" ]; then
-        ln -sf /etc/nginx/sites-available/app /etc/nginx/sites-enabled/
+    # Baixa template atualizado
+    log_info "Baixando template do Nginx..."
+    NGINX_TEMPLATE_URL="https://raw.githubusercontent.com/alanalvestech/newvps/refs/heads/main/configs/nginx/site.conf.template"
+    if ! wget -q "$NGINX_TEMPLATE_URL" -O /opt/newvps/templates/nginx.conf.template; then
+        log_error "Erro ao baixar template do Nginx"
+        exit 1
+    fi
+    
+    # Aplica template com as variáveis
+    log_info "Aplicando configuração..."
+    if ! sed "s/{{DOMAIN}}/${DOMAIN}/g" /opt/newvps/templates/nginx.conf.template > /etc/nginx/sites-available/app; then
+        log_error "Erro ao aplicar template"
+        exit 1
     fi
 
-    # Remove default se existir
-    if [ -f "/etc/nginx/sites-enabled/default" ]; then
-        rm -f /etc/nginx/sites-enabled/default
-    fi
+    # Configura links simbólicos
+    log_info "Configurando links..."
+    ln -sf /etc/nginx/sites-available/app /etc/nginx/sites-enabled/
+    rm -f /etc/nginx/sites-enabled/default
 
     # Testa configuração
     log_info "Testando configuração do Nginx..."
