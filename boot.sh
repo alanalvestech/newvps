@@ -100,44 +100,44 @@ wait_for_apt() {
     mkdir -p /opt/newvps/templates
 }
 
-########################################################
+#######################################################
 # Coletar informações necessárias
-########################################################
-# {
-#     log_info "Configuração inicial..."
+#######################################################
+{
+    log_info "Configuração inicial..."
 
-#     # Verifica se está em modo desinstalação
-#     if [ "${1:-}" = "uninstall" ]; then
-#         uninstall "${@}"
-#     fi
+    # Verifica se está em modo desinstalação
+    if [ "${1:-}" = "uninstall" ]; then
+        uninstall "${@}"
+    fi
     
-#     # Lê domínio
-#     read -p "Digite seu domínio: " DOMAIN
-#     if [ -z "$DOMAIN" ]; then
-#         log_error "Domínio é obrigatório"
-#         exit 1
-#     fi
+    # Lê domínio
+    read -p "Digite seu domínio: " DOMAIN
+    if [ -z "$DOMAIN" ]; then
+        log_error "Domínio é obrigatório"
+        exit 1
+    fi
     
-#     # Remove http:// ou https:// e barra final
-#     DOMAIN=$(echo "$DOMAIN" | sed -e 's#^http[s]*://##' -e 's#/$##')
+    # Remove http:// ou https:// e barra final
+    DOMAIN=$(echo "$DOMAIN" | sed -e 's#^http[s]*://##' -e 's#/$##')
     
-#     # Lê email
-#     read -p "Digite seu email: " EMAIL
-#     if [ -z "$EMAIL" ]; then
-#         log_error "Email é obrigatório"
-#         exit 1
-#     fi
+    # Lê email
+    read -p "Digite seu email: " EMAIL
+    if [ -z "$EMAIL" ]; then
+        log_error "Email é obrigatório"
+        exit 1
+    fi
     
-#     # Valida formato do email
-#     if ! echo "$EMAIL" | grep -qE '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'; then
-#         log_error "Email inválido. Use o formato: usuario@dominio.com"
-#         exit 1
-#     fi
+    # Valida formato do email
+    if ! echo "$EMAIL" | grep -qE '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'; then
+        log_error "Email inválido. Use o formato: usuario@dominio.com"
+        exit 1
+    fi
 
-#     log_info "✓ Domínio: $DOMAIN"
-#     log_info "✓ Email: $EMAIL"
-#     echo ""
-# }
+    log_info "✓ Domínio: $DOMAIN"
+    log_info "✓ Email: $EMAIL"
+    echo ""
+}
 
 ########################################################
 # Atualizar sistema
