@@ -55,6 +55,16 @@ uninstall() {
     # Remove Nginx
     log_info "Removendo Nginx..."
     
+    # Backup dos certificados SSL se existirem
+    if [ -d "/etc/letsencrypt/live" ]; then
+        log_info "Fazendo backup dos certificados SSL..."
+        mkdir -p /root/ssl-backup
+        cp -r /etc/letsencrypt/live/* /root/ssl-backup/
+        cp -r /etc/letsencrypt/archive/* /root/ssl-backup/
+        cp /etc/letsencrypt/renewal/* /root/ssl-backup/
+        log_info "Backup dos certificados salvo em /root/ssl-backup"
+    fi
+    
     # Para todos os processos do Nginx
     pkill -9 nginx || true
     
@@ -365,13 +375,26 @@ uninstall() {
     log_info "Configurando backup dos certificados..."
     echo "0 0 1 * * root tar -czf /root/letsencrypt-backup-\$(date +\%Y\%m).tar.gz /etc/letsencrypt/" > /etc/cron.d/ssl-backup
     
-    # Verifica se já existem certificados
-    if [ ! -d "/etc/letsencrypt/live/$DOMAIN" ]; then
-        log_info "Obtendo novos certificados..."
-        certbot certonly --standalone -d "$DOMAIN" -d "agent.$DOMAIN" -d "waha.$DOMAIN" --non-interactive --agree-tos -m "$EMAIL"
+    # Tenta gerar certificados Let's Encrypt
+    log_info "Tentando obter certificados Let's Encrypt..."
+    if certbot certonly --standalone -d "$DOMAIN" -d "agent.$DOMAIN" -d "waha.$DOMAIN" --non-interactive --agree-tos -m "$EMAIL"; then
+        log_info "Certificados Let's Encrypt obtidos com sucesso!"
+        SSL_CERT="/etc/letsencrypt/live/$DOMAIN/fullchain.pem"
+        SSL_KEY="/etc/letsencrypt/live/$DOMAIN/privkey.pem"
     else
-        log_info "Certificados existentes encontrados, pulando geração..."
+        log_warn "Não foi possível obter certificados Let's Encrypt. Gerando certificado auto-assinado..."
+        mkdir -p /etc/nginx/ssl
+        openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+            -keyout /etc/nginx/ssl/nginx.key \
+            -out /etc/nginx/ssl/nginx.crt \
+            -subj "/CN=$DOMAIN"
+        SSL_CERT="/etc/nginx/ssl/nginx.crt"
+        SSL_KEY="/etc/nginx/ssl/nginx.key"
     fi
+
+    # Atualiza template do Nginx com os certificados corretos
+    sed -i "s|ssl_certificate .*|ssl_certificate $SSL_CERT;|" /etc/nginx/sites-available/app
+    sed -i "s|ssl_certificate_key .*|ssl_certificate_key $SSL_KEY;|" /etc/nginx/sites-available/app
 }
 
 ########################################################
