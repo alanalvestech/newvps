@@ -44,8 +44,8 @@ server {
     keepalive_timeout 60;
     send_timeout 60;
 
-    # Root para site estático
-    root /var/www/html;
+    # Root para site estático (deploy via GitHub Actions)
+    root /root/site;
     index index.html;
 
     location / {
