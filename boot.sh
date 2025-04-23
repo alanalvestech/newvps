@@ -460,10 +460,6 @@ uninstall() {
     wait_for_apt
     apt-get install -y nginx
     
-    # Cria diretório SSL
-    log_info "Criando diretório SSL..."
-    mkdir -p /etc/nginx/ssl
-    
     # Configura diretório do site
     log_info "Configurando diretório do site..."
     mkdir -p /root/site
