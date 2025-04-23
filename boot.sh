@@ -262,72 +262,78 @@ uninstall() {
 # Instalar Docker
 ########################################################
 {
-    log_info "Instalando Docker..."
-
-    log_info "Instalando dependências..."
-    apt-get install -y ca-certificates curl gnupg || {
-        log_error "Falha ao instalar dependências"
-        exit 1
-    }
-
-    log_info "Configurando diretório..."
-    install -m 0755 -d /etc/apt/keyrings || {
-        log_error "Falha ao criar diretório keyrings"
-        exit 1
-    }
-
-    log_info "Removendo GPG antigo..."
-    rm -f /etc/apt/keyrings/docker.gpg
-
-    log_info "Baixando chave GPG..."
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg || {
-        log_error "Falha ao baixar/configurar chave GPG"
-        exit 1
-    }
-    chmod a+r /etc/apt/keyrings/docker.gpg
-
-    log_info "Detectando distribuição..."
-    if [ -f /etc/os-release ]; then
-        . /etc/os-release
-        OS=$ID
-        VERSION_CODENAME=$VERSION_CODENAME
-    else
-        OS="ubuntu"
-        VERSION_CODENAME="jammy"
-    fi
-    log_info "Sistema detectado: $OS $VERSION_CODENAME"
-
-    log_info "Configurando repositório..."
-    echo \
-      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/$OS \
-      $VERSION_CODENAME stable" | \
-      tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-    log_info "Atualizando repositórios..."
-    apt-get update || {
-        log_error "Falha ao atualizar repositórios"
-        exit 1
-    }
-
-    log_info "Instalando pacotes Docker..."
-    apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin || {
-        log_error "Falha ao instalar pacotes Docker"
-        exit 1
-    }
-
-    log_info "Iniciando serviço Docker..."
-    systemctl start docker || {
-        log_error "Falha ao iniciar Docker"
-        exit 1
-    }
-    systemctl enable docker
-
+    # Verifica se Docker já está instalado
     if ! command -v docker &> /dev/null; then
-        log_error "Falha na instalação do Docker"
-        exit 1
+        log_info "Instalando Docker..."
+
+        log_info "Instalando dependências..."
+        apt-get install -y ca-certificates curl gnupg || {
+            log_error "Falha ao instalar dependências"
+            exit 1
+        }
+
+        log_info "Configurando diretório..."
+        install -m 0755 -d /etc/apt/keyrings || {
+            log_error "Falha ao criar diretório keyrings"
+            exit 1
+        }
+
+        log_info "Removendo GPG antigo..."
+        rm -f /etc/apt/keyrings/docker.gpg
+
+        log_info "Baixando chave GPG..."
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg || {
+            log_error "Falha ao baixar/configurar chave GPG"
+            exit 1
+        }
+        chmod a+r /etc/apt/keyrings/docker.gpg
+
+        log_info "Detectando distribuição..."
+        if [ -f /etc/os-release ]; then
+            . /etc/os-release
+            OS=$ID
+            VERSION_CODENAME=$VERSION_CODENAME
+        else
+            OS="ubuntu"
+            VERSION_CODENAME="jammy"
+        fi
+        log_info "Sistema detectado: $OS $VERSION_CODENAME"
+
+        log_info "Configurando repositório..."
+        echo \
+          "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/$OS \
+          $VERSION_CODENAME stable" | \
+          tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+        log_info "Atualizando repositórios..."
+        apt-get update || {
+            log_error "Falha ao atualizar repositórios"
+            exit 1
+        }
+
+        log_info "Instalando pacotes Docker..."
+        apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin || {
+            log_error "Falha ao instalar pacotes Docker"
+            exit 1
+        }
+
+        log_info "Iniciando serviço Docker..."
+        systemctl start docker || {
+            log_error "Falha ao iniciar Docker"
+            exit 1
+        }
+        systemctl enable docker
+
+        if ! command -v docker &> /dev/null; then
+            log_error "Falha na instalação do Docker"
+            exit 1
+        fi
+
+        log_info "Docker instalado com sucesso!"
+    else
+        log_info "Docker já está instalado"
     fi
 
-    log_info "Docker instalado com sucesso!"
     log_info "Versão: $(docker --version)"
     log_info "Compose: $(docker compose version)"
 }
