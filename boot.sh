@@ -396,34 +396,60 @@ uninstall() {
 # Instalar e Configurar SSL
 ########################################################
 {
-    log_info "Configurando SSL..."
-    wait_for_apt
-    apt-get install -y certbot
+    # Verifica se certbot já está instalado
+    if ! command -v certbot &> /dev/null; then
+        log_info "Instalando Certbot..."
+        wait_for_apt
+        apt-get install -y certbot || {
+            log_error "Falha ao instalar Certbot"
+            exit 1
+        }
+    else
+        log_info "Certbot já está instalado"
+    fi
 
-    # Configura renovação automática
-    log_info "Configurando renovação automática..."
-    echo "0 0,12 * * * root python3 -c 'import random; import time; time.sleep(random.random() * 3600)' && certbot renew -q" > /etc/cron.d/certbot
+    # Configura renovação automática se não existir
+    if [ ! -f /etc/cron.d/certbot ]; then
+        log_info "Configurando renovação automática..."
+        echo "0 0,12 * * * root python3 -c 'import random; import time; time.sleep(random.random() * 3600)' && certbot renew -q" > /etc/cron.d/certbot
+    fi
     
-    # Backup diretório SSL
-    log_info "Configurando backup dos certificados..."
-    echo "0 0 1 * * root tar -czf /root/letsencrypt-backup-\$(date +\%Y\%m).tar.gz /etc/letsencrypt/" > /etc/cron.d/ssl-backup
+    # Configura backup dos certificados se não existir
+    if [ ! -f /etc/cron.d/ssl-backup ]; then
+        log_info "Configurando backup dos certificados..."
+        echo "0 0 1 * * root tar -czf /root/letsencrypt-backup-\$(date +\%Y\%m).tar.gz /etc/letsencrypt/" > /etc/cron.d/ssl-backup
+    fi
     
-    # Tenta gerar certificados Let's Encrypt
-    log_info "Tentando obter certificados Let's Encrypt..."
-    if certbot certonly --standalone -d "$DOMAIN" -d "agent.$DOMAIN" -d "waha.$DOMAIN" --non-interactive --agree-tos -m "$EMAIL"; then
-        log_info "Certificados Let's Encrypt obtidos com sucesso!"
+    # Verifica se já existem certificados válidos
+    if [ -d "/etc/letsencrypt/live/$DOMAIN" ] && [ -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ] && [ -f "/etc/letsencrypt/live/$DOMAIN/privkey.pem" ]; then
+        log_info "Certificados Let's Encrypt já existem"
         SSL_CERT="/etc/letsencrypt/live/$DOMAIN/fullchain.pem"
         SSL_KEY="/etc/letsencrypt/live/$DOMAIN/privkey.pem"
     else
-        log_warn "Não foi possível obter certificados Let's Encrypt. Gerando certificado auto-assinado..."
-        mkdir -p /etc/nginx/ssl
-        openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-            -keyout /etc/nginx/ssl/nginx.key \
-            -out /etc/nginx/ssl/nginx.crt \
-            -subj "/CN=$DOMAIN"
-        SSL_CERT="/etc/nginx/ssl/nginx.crt"
-        SSL_KEY="/etc/nginx/ssl/nginx.key"
+        # Tenta gerar certificados Let's Encrypt
+        log_info "Tentando obter certificados Let's Encrypt..."
+        if certbot certonly --standalone -d "$DOMAIN" -d "agent.$DOMAIN" -d "waha.$DOMAIN" --non-interactive --agree-tos -m "$EMAIL"; then
+            log_info "Certificados Let's Encrypt obtidos com sucesso!"
+            SSL_CERT="/etc/letsencrypt/live/$DOMAIN/fullchain.pem"
+            SSL_KEY="/etc/letsencrypt/live/$DOMAIN/privkey.pem"
+        else
+            # Verifica se já existe certificado auto-assinado
+            if [ -f "/etc/nginx/ssl/nginx.crt" ] && [ -f "/etc/nginx/ssl/nginx.key" ]; then
+                log_info "Certificado auto-assinado já existe"
+            else
+                log_warn "Não foi possível obter certificados Let's Encrypt. Gerando certificado auto-assinado..."
+                mkdir -p /etc/nginx/ssl
+                openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+                    -keyout /etc/nginx/ssl/nginx.key \
+                    -out /etc/nginx/ssl/nginx.crt \
+                    -subj "/CN=$DOMAIN"
+            fi
+            SSL_CERT="/etc/nginx/ssl/nginx.crt"
+            SSL_KEY="/etc/nginx/ssl/nginx.key"
+        fi
     fi
+
+    log_info "✓ Certificado SSL configurado: $SSL_CERT"
 }
 
 ########################################################
