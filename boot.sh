@@ -283,14 +283,8 @@ uninstall() {
         log_info "FastAPI já está instalado"
     fi
 
-    # # Verifica se instalação foi bem sucedida
-    # if ! command -v uvicorn &> /dev/null; then
-    #     log_error "Falha na instalação do FastAPI"
-    #     exit 1
-    # fi
-
-    # log_info "Versão FastAPI: $(pip show fastapi | grep Version)"
-    # log_info "Versão Uvicorn: $(pip show uvicorn | grep Version)"
+    log_info "Versão FastAPI: $(pip show fastapi | grep Version)"
+    log_info "Versão Uvicorn: $(pip show uvicorn | grep Version)"
 }
 
 ########################################################
