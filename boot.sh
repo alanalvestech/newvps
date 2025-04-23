@@ -357,9 +357,14 @@ uninstall() {
     wait_for_apt
     apt-get install -y nginx
     
+    # Cria diretórios necessários
+    log_info "Criando diretórios..."
+    mkdir -p /etc/nginx/ssl
+    mkdir -p /var/www/html
+    chown -R www-data:www-data /var/www/html
+    
     # Gera parâmetros DH fortes
     log_info "Gerando parâmetros DH..."
-    mkdir -p /etc/nginx/ssl
     openssl dhparam -out /etc/nginx/ssl/dhparam.pem 2048
 
     # Baixa e configura template do Nginx
@@ -367,10 +372,22 @@ uninstall() {
     NGINX_TEMPLATE_URL="https://raw.githubusercontent.com/alanalvestech/newvps/refs/heads/main/configs/nginx/app.conf.template"
     wget -q "$NGINX_TEMPLATE_URL" -O /opt/newvps/templates/nginx.conf.template
     
-    # Substitui variáveis no template e usa apenas a parte HTTP
+    # Configura Nginx apenas com HTTP inicialmente
     log_info "Configurando Nginx..."
-    sed -n '/# Configuração HTTP inicial/,/^}$/p' /opt/newvps/templates/nginx.conf.template | \
-    sed "s/{{DOMAIN}}/${DOMAIN}/g" > /etc/nginx/sites-available/app
+    cat > /etc/nginx/sites-available/app << EOF
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ${DOMAIN};
+    
+    root /var/www/html;
+    index index.html;
+    
+    location / {
+        try_files \$uri \$uri/ =404;
+    }
+}
+EOF
 
     ln -sf /etc/nginx/sites-available/app /etc/nginx/sites-enabled/
     rm -f /etc/nginx/sites-enabled/default
@@ -403,6 +420,10 @@ uninstall() {
     # Aplica configuração completa do Nginx com SSL
     log_info "Aplicando configuração SSL..."
     sed "s/{{DOMAIN}}/${DOMAIN}/g" /opt/newvps/templates/nginx.conf.template > /etc/nginx/sites-available/app
+    
+    # Cria página de teste
+    echo "<h1>Servidor configurado com sucesso!</h1>" > /var/www/html/index.html
+    chown www-data:www-data /var/www/html/index.html
     
     # Reinicia Nginx com nova configuração
     nginx -t && systemctl restart nginx
