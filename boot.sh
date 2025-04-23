@@ -84,11 +84,11 @@ wait_for_apt() {
 ########################################################
 # Verificar argumentos
 ########################################################
-# {
-#     if [ "${1:-}" = "uninstall" ]; then
-#         uninstall "${@}"
-#     fi
-# }
+{
+    if [ "${1:-}" = "uninstall" ]; then
+        uninstall "${@}"
+    fi
+}
 
 ########################################################
 # Verificar root e criar estrutura
@@ -173,6 +173,23 @@ wait_for_apt() {
     fi
     
     log_info "Versão: $(git --version)"
+}
+
+########################################################
+# Instalar Nginx
+########################################################
+{
+    # Verifica se Nginx já está instalado
+    if ! command -v nginx &> /dev/null; then
+        log_info "Instalando Nginx..."
+        wait_for_apt
+        apt-get install -y nginx
+        log_info "Nginx instalado com sucesso!"
+    else
+        log_info "Nginx já está instalado"
+    fi
+    
+    log_info "Versão: $(nginx -v 2>&1)"
 }
 
 ########################################################
@@ -349,14 +366,11 @@ wait_for_apt() {
 #     log_info "✓ Certificado SSL configurado: $SSL_CERT"
 # }
 
-########################################################
-# Instalar e Configurar Nginx
-########################################################
+
+# ########################################################
+# # Configurar Nginx
+# ########################################################
 # {
-#     log_info "Instalando Nginx..."
-#     wait_for_apt
-#     apt-get install -y nginx
-    
 #     # Configura diretório do site
 #     log_info "Configurando diretório do site..."
 #     mkdir -p /root/site
