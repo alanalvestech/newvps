@@ -4,8 +4,25 @@ server {
     listen [::]:80 default_server;
     server_name {{DOMAIN}};
     
+    # Buffer sizes
+    client_max_body_size 64M;
+    client_body_buffer_size 128k;
+
+    # Timeouts
+    client_header_timeout 60;
+    client_body_timeout 60;
+    keepalive_timeout 60;
+    send_timeout 60;
+    
     location / {
         return 301 https://$server_name$request_uri;
+    }
+
+    # Página de erro para debug
+    error_page 500 502 503 504 /50x.html;
+    location = /50x.html {
+        root /usr/share/nginx/html;
+        internal;
     }
 }
 
@@ -35,6 +52,16 @@ server {
     access_log /var/log/nginx/site_access.log combined;
     error_log /var/log/nginx/site_error.log warn;
 
+    # Buffer sizes
+    client_max_body_size 64M;
+    client_body_buffer_size 128k;
+
+    # Timeouts
+    client_header_timeout 60;
+    client_body_timeout 60;
+    keepalive_timeout 60;
+    send_timeout 60;
+
     # Root para site estático
     root /root/site;
     index index.html;
@@ -42,21 +69,11 @@ server {
     location / {
         try_files $uri $uri/ =404;
     }
-}
 
-# Página de erro para debug
-error_page 500 502 503 504 /50x.html;
-location = /50x.html {
-    root /usr/share/nginx/html;
-    internal;
-}
-
-# Buffer sizes
-client_max_body_size 64M;
-client_body_buffer_size 128k;
-
-# Timeouts
-client_header_timeout 60;
-client_body_timeout 60;
-keepalive_timeout 60;
-send_timeout 60; 
+    # Página de erro para debug
+    error_page 500 502 503 504 /50x.html;
+    location = /50x.html {
+        root /usr/share/nginx/html;
+        internal;
+    }
+} 
