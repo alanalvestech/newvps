@@ -145,13 +145,13 @@ uninstall() {
 ########################################################
 # Atualizar sistema
 ########################################################
-# {
-    # log_info "Atualizando sistema..."
-    # wait_for_apt
-    # apt-get update
-    # wait_for_apt
-    # apt-get upgrade -y
-# }
+{
+    log_info "Atualizando sistema..."
+    wait_for_apt
+    apt-get update
+    wait_for_apt
+    apt-get upgrade -y
+}
 
 ########################################################
 # Instalar Git
@@ -178,36 +178,36 @@ uninstall() {
 ########################################################
 # Instalar Python e FastAPI
 ########################################################
-{
-    # Verifica se Python já está instalado
-    if ! command -v python3 &> /dev/null; then
-        log_info "Instalando Python..."
-        wait_for_apt
-        apt-get install -y python3 python3-pip python3-venv || {
-            log_error "Falha ao instalar Python"
-            exit 1
-        }
-        log_info "Python instalado com sucesso!"
-    else
-        log_info "Python já está instalado"
-        log_info "Versão: $(python3 --version)"
-    fi
+# {
+#     # Verifica se Python já está instalado
+#     if ! command -v python3 &> /dev/null; then
+#         log_info "Instalando Python..."
+#         wait_for_apt
+#         apt-get install -y python3 python3-pip python3-venv || {
+#             log_error "Falha ao instalar Python"
+#             exit 1
+#         }
+#         log_info "Python instalado com sucesso!"
+#     else
+#         log_info "Python já está instalado"
+#         log_info "Versão: $(python3 --version)"
+#     fi
 
-    # # Verifica se FastAPI já está instalado
-    # if ! pip show fastapi &> /dev/null; then
-    #     log_info "Instalando FastAPI..."
-    #     pip install fastapi uvicorn python-dotenv || {
-    #         log_error "Falha ao instalar FastAPI"
-    #         exit 1
-    #     }
-    #     log_info "FastAPI instalado com sucesso!"
-    # else
-    #     log_info "FastAPI já está instalado"
-    # fi
+#     # # Verifica se FastAPI já está instalado
+#     # if ! pip show fastapi &> /dev/null; then
+#     #     log_info "Instalando FastAPI..."
+#     #     pip install fastapi uvicorn python-dotenv || {
+#     #         log_error "Falha ao instalar FastAPI"
+#     #         exit 1
+#     #     }
+#     #     log_info "FastAPI instalado com sucesso!"
+#     # else
+#     #     log_info "FastAPI já está instalado"
+#     # fi
 
-    # log_info "Versão FastAPI: $(pip show fastapi | grep Version)"
-    # log_info "Versão Uvicorn: $(pip show uvicorn | grep Version)"
-}
+#     # log_info "Versão FastAPI: $(pip show fastapi | grep Version)"
+#     # log_info "Versão Uvicorn: $(pip show uvicorn | grep Version)"
+# }
 
 ########################################################
 # Instalar Docker
