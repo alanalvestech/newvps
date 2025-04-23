@@ -242,41 +242,40 @@ wait_for_apt() {
     log_info "✓ Certificado SSL configurado: $SSL_CERT"
 }
 
-# ########################################################
-# # Configurar Nginx
-# ########################################################
-# {
-#     # Configura diretório do site
-#     log_info "Configurando diretório do site..."
-#     mkdir -p /root/site
-#     chown -R root:root /root/site
-#     chmod -R 755 /root/site
+########################################################
+# Configurar Nginx
+########################################################
+{
+    # Configura diretório do site
+    log_info "Configurando diretório do site..."
+    mkdir -p /root/site
+    chmod -R 755 /root/site
     
-#     # Gera parâmetros DH fortes
-#     log_info "Gerando parâmetros DH..."
-#     openssl dhparam -out /etc/nginx/ssl/dhparam.pem 2048
+    # Gera parâmetros DH fortes
+    log_info "Gerando parâmetros DH..."
+    openssl dhparam -out /etc/nginx/ssl/dhparam.pem 2048
 
-#     # Baixa template do Nginx
-#     log_info "Baixando template do Nginx..."
-#     NGINX_TEMPLATE_URL="https://raw.githubusercontent.com/alanalvestech/newvps/refs/heads/main/configs/nginx/app.conf.template"
-#     wget -q "$NGINX_TEMPLATE_URL" -O /opt/newvps/templates/nginx.conf.template
+    # Baixa template do Nginx
+    log_info "Baixando template do Nginx..."
+    NGINX_TEMPLATE_URL="https://raw.githubusercontent.com/alanalvestech/newvps/refs/heads/main/configs/nginx/site.conf.template"
+    wget -q "$NGINX_TEMPLATE_URL" -O /opt/newvps/templates/nginx.conf.template
     
-#     # Configura Nginx
-#     log_info "Configurando Nginx..."
-#     sed "s/{{DOMAIN}}/${DOMAIN}/g" /opt/newvps/templates/nginx.conf.template > /etc/nginx/sites-available/app
+    # Configura Nginx
+    log_info "Configurando Nginx..."
+    sed "s/{{DOMAIN}}/${DOMAIN}/g" /opt/newvps/templates/nginx.conf.template > /etc/nginx/sites-available/app
 
-#     # Atualiza caminhos dos certificados SSL
-#     log_info "Atualizando configuração SSL..."
-#     sed -i "s|ssl_certificate .*|ssl_certificate $SSL_CERT;|" /etc/nginx/sites-available/app
-#     sed -i "s|ssl_certificate_key .*|ssl_certificate_key $SSL_KEY;|" /etc/nginx/sites-available/app
+    # Atualiza caminhos dos certificados SSL
+    log_info "Atualizando configuração SSL..."
+    sed -i "s|ssl_certificate .*|ssl_certificate $SSL_CERT;|" /etc/nginx/sites-available/app
+    sed -i "s|ssl_certificate_key .*|ssl_certificate_key $SSL_KEY;|" /etc/nginx/sites-available/app
 
-#     ln -sf /etc/nginx/sites-available/app /etc/nginx/sites-enabled/
-#     rm -f /etc/nginx/sites-enabled/default
+    ln -sf /etc/nginx/sites-available/app /etc/nginx/sites-enabled/
+    rm -f /etc/nginx/sites-enabled/default
 
-#     # Testa e reinicia Nginx
-#     log_info "Testando configuração do Nginx..."
-#     nginx -t && systemctl restart nginx
-# }
+    # Testa e reinicia Nginx
+    log_info "Testando configuração do Nginx..."
+    nginx -t && systemctl restart nginx
+}
 
 ########################################################
 # Instalar Python e FastAPI
