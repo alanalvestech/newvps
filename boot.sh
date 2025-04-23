@@ -217,22 +217,18 @@ wait_for_apt() {
 # Configurar Nginx (site)
 ########################################################
 {
-    # Configura diretório do site
     log_info "Configurando diretório do site..."
     mkdir -p /var/www/site
     chown -R www-data:www-data /var/www/site
     chmod -R 755 /var/www/site
 
-    # Verifica permissões
     if [ ! -r "/var/www/site" ] || [ ! -x "/var/www/site" ]; then
         log_error "Erro: diretório /var/www/site não tem permissões corretas"
         exit 1
     fi
 
-    # Configura Nginx
     log_info "Configurando Nginx..."
     
-    # Baixa template atualizado
     log_info "Baixando template do Nginx..."
     NGINX_TEMPLATE_URL="https://raw.githubusercontent.com/alanalvestech/newvps/refs/heads/main/configs/nginx/site.conf.template"
     if ! wget -q "$NGINX_TEMPLATE_URL" -O /opt/newvps/templates/nginx.conf.template; then
@@ -240,19 +236,16 @@ wait_for_apt() {
         exit 1
     fi
     
-    # Aplica template com as variáveis
     log_info "Aplicando configuração..."
     sed -e "s/{{DOMAIN}}/${DOMAIN}/g" \
         -e "s|{{SSL_CERT}}|${SSL_CERT}|g" \
         -e "s|{{SSL_KEY}}|${SSL_KEY}|g" \
         /opt/newvps/templates/nginx.conf.template > /etc/nginx/sites-available/app
 
-    # Configura links simbólicos
     log_info "Configurando links..."
     ln -sf /etc/nginx/sites-available/app /etc/nginx/sites-enabled/
     rm -f /etc/nginx/sites-enabled/default
 
-    # Testa configuração
     log_info "Testando configuração do Nginx..."
     nginx -t || {
         log_error "Erro na configuração do Nginx"
@@ -260,7 +253,6 @@ wait_for_apt() {
         exit 1
     }
 
-    # Reinicia Nginx
     log_info "Reiniciando Nginx..."
     systemctl restart nginx
 
