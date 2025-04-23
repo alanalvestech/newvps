@@ -249,8 +249,15 @@ wait_for_apt() {
     # Configura diretório do site
     log_info "Configurando diretório do site..."
     mkdir -p /root/site
+    chown -R www-data:www-data /root/site
     chmod -R 755 /root/site
-    
+
+    # Verifica permissões
+    if [ ! -r "/root/site" ] || [ ! -x "/root/site" ]; then
+        log_error "Erro: diretório /root/site não tem permissões corretas"
+        exit 1
+    fi
+
     # Gera parâmetros DH fortes
     if [ ! -f "/etc/nginx/ssl/dhparam.pem" ]; then
         log_info "Gerando parâmetros DH..."
@@ -269,17 +276,54 @@ wait_for_apt() {
     log_info "Configurando Nginx..."
     sed "s/{{DOMAIN}}/${DOMAIN}/g" /opt/newvps/templates/nginx.conf.template > /etc/nginx/sites-available/app
 
-    # Atualiza caminhos dos certificados SSL
-    log_info "Atualizando configuração SSL..."
-    sed -i "s|ssl_certificate .*|ssl_certificate $SSL_CERT;|" /etc/nginx/sites-available/app
-    sed -i "s|ssl_certificate_key .*|ssl_certificate_key $SSL_KEY;|" /etc/nginx/sites-available/app
+    # Cria link simbólico se não existir
+    if [ ! -L "/etc/nginx/sites-enabled/app" ]; then
+        ln -sf /etc/nginx/sites-available/app /etc/nginx/sites-enabled/
+    fi
 
-    ln -sf /etc/nginx/sites-available/app /etc/nginx/sites-enabled/
-    rm -f /etc/nginx/sites-enabled/default
+    # Remove default se existir
+    if [ -f "/etc/nginx/sites-enabled/default" ]; then
+        rm -f /etc/nginx/sites-enabled/default
+    fi
 
-    # Testa e reinicia Nginx
+    # Testa configuração
     log_info "Testando configuração do Nginx..."
-    nginx -t && systemctl restart nginx
+    nginx -t || {
+        log_error "Erro na configuração do Nginx"
+        log_error "Verifique os logs acima"
+        exit 1
+    }
+
+    # Reinicia Nginx
+    log_info "Reiniciando Nginx..."
+    systemctl restart nginx
+
+    # Aguarda inicialização
+    sleep 2
+
+    # Verifica status
+    if ! systemctl is-active --quiet nginx; then
+        log_error "Nginx não está rodando"
+        log_info "Últimas linhas do log de erro:"
+        tail -n 20 /var/log/nginx/error.log
+        log_info "Log específico do domínio:"
+        tail -n 20 "/var/log/nginx/${DOMAIN}.error.log"
+        exit 1
+    fi
+
+    # Testa conexão
+    log_info "Testando conexão..."
+    if ! curl -s -I "http://${DOMAIN}" > /dev/null; then
+        log_error "Não foi possível conectar ao site"
+        log_info "Verifique se a porta 80 está aberta e acessível"
+        exit 1
+    fi
+
+    log_info "✓ Nginx configurado e rodando"
+    log_info "✓ Site acessível em: http://${DOMAIN}"
+    log_info "✓ Logs disponíveis em:"
+    log_info "  - /var/log/nginx/${DOMAIN}.access.log"
+    log_info "  - /var/log/nginx/${DOMAIN}.error.log"
 }
 
 ########################################################
