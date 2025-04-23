@@ -18,72 +18,26 @@ log_info() { echo -e "\033[0;32m[INFO]\033[0m $1"; }
 log_warn() { echo -e "\033[1;33m[WARN]\033[0m $1"; }
 log_error() { echo -e "\033[0;31m[ERROR]\033[0m $1"; }
 
-########################################################
-# Função para esperar lock do apt
-########################################################
-wait_for_apt() {
-    local max_attempts=3  # 15 segundos (5s * 3)
-    local attempt=1
-
-    # Tenta matar qualquer processo apt/dpkg existente
-    pkill -9 -f "apt-get|dpkg" || true
-    
-    # Remove todos os locks imediatamente
-    rm -f /var/lib/dpkg/lock
-    rm -f /var/lib/apt/lists/lock
-    rm -f /var/lib/dpkg/lock-frontend
-    rm -f /var/cache/apt/archives/lock
-    rm -f /var/lib/dpkg/lock*
-    
-    # Repara o dpkg
-    dpkg --configure -a || true
-    
-    # Pequena pausa para o sistema se recuperar
-    sleep 2
-}
-
-########################################################
-# Verificar root e criar estrutura
-########################################################
-{
-    if [ "$EUID" -ne 0 ]; then 
-        log_error "Execute como root"
-        exit 1
-    fi
-
-    # Cria estrutura de diretórios
-    mkdir -p /opt/newvps/templates
-}
-
 #######################################################
 # Coletar informações necessárias
 #######################################################
 {
     log_info "Configuração inicial..."
-
-    # Verifica se está em modo desinstalação
-    if [ "${1:-}" = "uninstall" ]; then
-        uninstall "${@}"
-    fi
     
-    # Lê domínio
     read -p "Digite seu domínio: " DOMAIN
     if [ -z "$DOMAIN" ]; then
         log_error "Domínio é obrigatório"
         exit 1
     fi
     
-    # Remove http:// ou https:// e barra final
     DOMAIN=$(echo "$DOMAIN" | sed -e 's#^http[s]*://##' -e 's#/$##')
     
-    # Lê email
     read -p "Digite seu email: " EMAIL
     if [ -z "$EMAIL" ]; then
         log_error "Email é obrigatório"
         exit 1
     fi
     
-    # Valida formato do email
     if ! echo "$EMAIL" | grep -qE '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'; then
         log_error "Email inválido. Use o formato: usuario@dominio.com"
         exit 1
@@ -99,13 +53,10 @@ wait_for_apt() {
 ########################################################
 {
     log_info "Verificando atualizações..."
-    wait_for_apt
     apt-get update
     
-    # Verifica se há atualizações pendentes
     if apt list --upgradable 2>/dev/null | grep -q "^[a-zA-Z]"; then
         log_info "Atualizando pacotes..."
-        wait_for_apt
         apt-get upgrade -y
         log_info "Sistema atualizado com sucesso!"
     else
@@ -117,10 +68,9 @@ wait_for_apt() {
 # Instalar Git
 ########################################################
 {
-    # Verifica se Git já está instalado
     if ! command -v git &> /dev/null; then
         log_info "Instalando Git..."
-        wait_for_apt
+        
         apt-get install -y git
 
         if ! command -v git &> /dev/null; then
@@ -139,10 +89,11 @@ wait_for_apt() {
 # Instalar Nginx
 ########################################################
 {
-    # Verifica se Nginx já está instalado
+    mkdir -p /opt/newvps/templates
+
     if ! command -v nginx &> /dev/null; then
         log_info "Instalando Nginx..."
-        wait_for_apt
+        
         apt-get install -y nginx
         log_info "Nginx instalado com sucesso!"
     else
@@ -161,7 +112,6 @@ wait_for_apt() {
         SSL_CERT="/etc/letsencrypt/live/${DOMAIN}/fullchain.pem"
         SSL_KEY="/etc/letsencrypt/live/${DOMAIN}/privkey.pem"
         
-        # Verifica se precisa renovar
         if certbot certificates | grep -q "${DOMAIN}.*VALID: 30 days or less"; then
             log_info "Renovando certificado Let's Encrypt..."
             certbot renew --quiet
@@ -266,7 +216,7 @@ wait_for_apt() {
 #     # Verifica se Python já está instalado
 #     if ! command -v python3 &> /dev/null; then
 #         log_info "Instalando Python..."
-#         wait_for_apt
+#         
 #         apt-get install -y python3 python3-pip python3-venv || {
 #             log_error "Falha ao instalar Python"
 #             exit 1
