@@ -19,36 +19,6 @@ log_warn() { echo -e "\033[1;33m[WARN]\033[0m $1"; }
 log_error() { echo -e "\033[0;31m[ERROR]\033[0m $1"; }
 
 ###############################################################################
-# Coletar informações necessárias
-###############################################################################
-{
-    log_info "Configuração inicial..."
-    
-    read -p "Digite seu domínio: " DOMAIN
-    if [ -z "$DOMAIN" ]; then
-        log_error "Domínio é obrigatório"
-        exit 1
-    fi
-    
-    DOMAIN=$(echo "$DOMAIN" | sed -e 's#^http[s]*://##' -e 's#/$##')
-    
-    read -p "Digite seu email: " EMAIL
-    if [ -z "$EMAIL" ]; then
-        log_error "Email é obrigatório"
-        exit 1
-    fi
-    
-    if ! echo "$EMAIL" | grep -qE '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'; then
-        log_error "Email inválido. Use o formato: usuario@dominio.com"
-        exit 1
-    fi
-
-    log_info "✓ Domínio: $DOMAIN"
-    log_info "✓ Email: $EMAIL"
-    echo ""
-}
-
-###############################################################################
 # Atualizar sistema
 ###############################################################################
 {
@@ -111,6 +81,14 @@ log_error() { echo -e "\033[0;31m[ERROR]\033[0m $1"; }
     
     mkdir -p /etc/nginx/ssl
     chmod 700 /etc/nginx/ssl
+
+    read -p "Digite seu domínio: " DOMAIN
+    if [ -z "$DOMAIN" ]; then
+        log_error "Domínio é obrigatório"
+        exit 1
+    fi
+    
+    DOMAIN=$(echo "$DOMAIN" | sed -e 's#^http[s]*://##' -e 's#/$##')
     
     if [ -f "/etc/nginx/ssl/${DOMAIN}.pem" ] && [ -f "/etc/nginx/ssl/${DOMAIN}.key" ]; then
         log_info "Certificados Cloudflare Origin já existem"
